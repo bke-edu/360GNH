@@ -165,4 +165,44 @@ describe('usage budget', () => {
       calls: 1,
     });
   });
+
+  it('keeps recorded spend when the per-process ceiling changes', () => {
+    const budget = new UsageBudget(0.01);
+    budget.record({
+      provider: 'test',
+      model: 'test',
+      inputTokens: 1,
+      outputTokens: 1,
+      estimatedCostUsd: 0.006,
+      latencyMs: 1,
+    });
+
+    budget.setLimit(0.005);
+
+    expect(budget.snapshot()).toMatchObject({
+      limitUsd: 0.005,
+      spentUsd: 0.006,
+      remainingUsd: 0,
+      calls: 1,
+    });
+    expect(() => budget.reserve(0.001)).toThrow(BudgetExceededError);
+  });
+
+  it('lets an already reserved call settle after the ceiling is lowered', () => {
+    const budget = new UsageBudget(0.01);
+    const reservation = budget.reserve(0.008);
+    budget.setLimit(0.005);
+
+    expect(() =>
+      budget.settle(reservation, {
+        provider: 'test',
+        model: 'test',
+        inputTokens: 1,
+        outputTokens: 1,
+        estimatedCostUsd: 0.006,
+        latencyMs: 1,
+      }),
+    ).not.toThrow();
+    expect(budget.snapshot()).toMatchObject({ spentUsd: 0.006, remainingUsd: 0 });
+  });
 });

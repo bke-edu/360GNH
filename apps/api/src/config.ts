@@ -1,4 +1,13 @@
 import { z } from 'zod';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const apiPackageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const defaultProviderSettingsPath = resolve(apiPackageRoot, 'data/provider-settings.json');
+const OptionalNonEmptyString = z.preprocess(
+  (value) => (typeof value === 'string' && !value.trim() ? undefined : value),
+  z.string().trim().min(1).optional(),
+);
 
 const EnvironmentSchema = z.object({
   HOST: z.string().default('127.0.0.1'),
@@ -15,6 +24,7 @@ const EnvironmentSchema = z.object({
   OPENAI_TTS_MODEL: z.string().default('gpt-4o-mini-tts'),
   AUDIOBOOK_MAX_CHARS: z.coerce.number().int().min(40).max(250_000).default(20_000),
   AUDIOBOOK_SESSION_CHAR_BUDGET: z.coerce.number().int().min(40).max(2_000_000).default(100_000),
+  PROVIDER_SETTINGS_PATH: OptionalNonEmptyString,
 });
 
 export interface RuntimeConfig {
@@ -32,6 +42,7 @@ export interface RuntimeConfig {
   openaiTtsModel: string;
   audiobookMaxCharacters: number;
   audiobookSessionCharacterBudget: number;
+  providerSettingsPath: string;
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): RuntimeConfig {
@@ -57,13 +68,11 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Runtim
     openaiTtsModel: parsed.OPENAI_TTS_MODEL,
     audiobookMaxCharacters: parsed.AUDIOBOOK_MAX_CHARS,
     audiobookSessionCharacterBudget: parsed.AUDIOBOOK_SESSION_CHAR_BUDGET,
+    providerSettingsPath: parsed.PROVIDER_SETTINGS_PATH ?? defaultProviderSettingsPath,
   };
 
   if (!isLoopback(config.host) && !config.apiToken) {
     throw new Error('API_TOKEN is required when HOST is not a loopback address');
-  }
-  if (config.aiProvider === 'openai' && !config.openaiApiKey) {
-    throw new Error('OPENAI_API_KEY is required when AI_PROVIDER=openai');
   }
   if (config.audiobookSessionCharacterBudget < config.audiobookMaxCharacters) {
     throw new Error('AUDIOBOOK_SESSION_CHAR_BUDGET must be at least AUDIOBOOK_MAX_CHARS');

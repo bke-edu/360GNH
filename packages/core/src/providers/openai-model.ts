@@ -110,6 +110,7 @@ export interface OpenAIKnowledgeModelOptions {
   apiKey: string;
   model?: string;
   budgetUsd: number;
+  usageBudget?: UsageBudget;
   inputUsdPerMillion?: number;
   outputUsdPerMillion?: number;
   client?: OpenAI;
@@ -126,7 +127,7 @@ export class OpenAIKnowledgeModel implements KnowledgeModel {
     if (!options.apiKey.trim() && !options.client) throw new Error('OpenAI API key is required');
     this.model = options.model?.trim() || 'gpt-5.6-luna';
     this.#client = options.client ?? new OpenAI({ apiKey: options.apiKey });
-    this.#budget = new UsageBudget(options.budgetUsd);
+    this.#budget = options.usageBudget ?? new UsageBudget(options.budgetUsd);
     this.#price = resolvePrice(this.model, options);
   }
 

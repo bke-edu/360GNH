@@ -4,7 +4,7 @@
 
 360GNH lấy nội dung từ một video YouTube, giữ nguyên bản phụ đề thô, biên tập thành tài liệu sạch rồi biến cùng nguồn đó thành câu trả lời có trích dẫn, công cụ học hoặc một tệp sách nói.
 
-Đây là bản tách độc lập từ các ý tưởng dùng lại được của một nền tảng tri thức do Nguyễn Duy Hưng duy trì. Toàn bộ giao diện có cả tiếng Việt lẫn tiếng Anh, tự nhận ngôn ngữ trình duyệt ở lần đầu và nhớ lựa chọn của người dùng. Mặc định dự án chạy hoàn toàn cục bộ bằng mô hình giả lập có kết quả ổn định, không cần khóa API và không gửi dữ liệu ra ngoài.
+Đây là bản tách độc lập từ các ý tưởng dùng lại được của một nền tảng tri thức do Nguyễn Duy Hưng duy trì. Toàn bộ giao diện có cả tiếng Việt lẫn tiếng Anh, tự nhận ngôn ngữ trình duyệt ở lần đầu và nhớ lựa chọn của người dùng. Mặc định dự án chạy hoàn toàn cục bộ bằng mô hình giả lập có kết quả ổn định, không cần khóa API và không gửi dữ liệu ra ngoài. Khi cần dịch vụ thật, người dùng nhập khóa ngay trên màn hình thiết lập; khóa được lưu phía máy chủ chứ không ở lại trình duyệt.
 
 ![Giao diện Knowledge Studio trên máy tính](docs/assets/knowledge-studio-desktop.png)
 
@@ -17,7 +17,7 @@ npm ci
 npm run dev
 ```
 
-Mở <http://127.0.0.1:4311>. Máy chủ API chạy tại <http://127.0.0.1:4310>. Dùng nút **VI / EN** trên đầu trang để đổi toàn bộ giao diện; đầu ra của mô hình cục bộ đi theo ngôn ngữ câu hỏi.
+Mở <http://127.0.0.1:4311>. Máy chủ API chạy tại <http://127.0.0.1:4310>. Lần chạy đầu không có khóa sẽ tự mở trang kết nối dịch vụ nhưng vẫn cho vào bản demo. Sau đó có thể mở lại bằng nút thiết lập trên đầu trang. Dùng nút **VI / EN** để đổi toàn bộ giao diện; đầu ra của mô hình cục bộ đi theo ngôn ngữ câu hỏi.
 
 ```bash
 npm test
@@ -27,7 +27,7 @@ npm run check
 
 ### Tự chạy cùng Docker
 
-Docker Compose dựng riêng container API không chạy bằng quyền quản trị và container giao diện tĩnh. Cả hai chỉ mở trên máy cục bộ và dùng `restart: unless-stopped`, nên tự sống lại mỗi khi Docker khởi động. Trình duyệt gọi API đã bảo vệ qua máy chuyển tiếp của giao diện; khóa nhà cung cấp không đi vào gói giao diện hay lớp image.
+Docker Compose dựng riêng container API không chạy bằng quyền quản trị và container giao diện tĩnh. Cả hai chỉ mở trên máy cục bộ và dùng `restart: unless-stopped`, nên tự sống lại mỗi khi Docker khởi động. Trình duyệt gọi API đã bảo vệ qua máy chuyển tiếp của giao diện; khóa nhà cung cấp không đi vào gói giao diện hay lớp image. Khóa nhập trên giao diện nằm trong một ổ Docker chỉ gắn vào API, dưới dạng tệp ghi nguyên tử có quyền `0600`.
 
 Muốn chạy mô hình cục bộ không cần khóa:
 
@@ -36,9 +36,9 @@ cp .env.example .env
 ./scripts/docker-up.sh
 ```
 
-Nếu chưa có `API_TOKEN`, trình hỗ trợ sẽ tự sinh một mã nội bộ mới. Nếu gọi Compose trực tiếp thì người vận hành phải tự đặt giá trị này.
+Nếu chưa có `API_TOKEN`, trình hỗ trợ sẽ tự sinh một mã nội bộ mới. Nếu gọi Compose trực tiếp thì người vận hành phải tự đặt giá trị này. Muốn bật OpenAI hoặc Supadata chỉ cần mở trang thiết lập, nhập khóa rồi bấm kiểm tra và lưu; không bắt buộc sửa tệp môi trường.
 
-Muốn dùng lại một tệp môi trường riêng mà không chép khóa vào repository:
+Biến môi trường vẫn dành cho cách chạy không có giao diện và luôn được ưu tiên hơn khóa đã lưu. Muốn dùng lại một tệp môi trường riêng mà không chép khóa vào repository:
 
 ```bash
 AI_PROVIDER=openai ./scripts/docker-up.sh /đường/dẫn/tuyệt/đối/tới/private.env
@@ -58,9 +58,13 @@ Mở <http://127.0.0.1:4311>. Xem trạng thái bằng `docker compose ps`; xem 
 - dựng một tệp sách nói WAV qua OpenAI, tự chia ở ranh giới câu và chặn cứng số ký tự;
 - Quảng trường tranh luận với 2–4 góc nhìn bắt buộc dựa vào bằng chứng.
 
-Muốn dùng OpenAI cho biên tập và các công cụ tri thức thì chép `.env.example` thành `.env`, đặt `AI_PROVIDER=openai`, thêm `OPENAI_API_KEY` và chọn giới hạn `AI_BUDGET_USD`. Văn bản chỉ được gửi cho mô hình tri thức khi người vận hành bật lựa chọn này; sách nói chỉ gửi nguồn đã chọn sau khi người dùng tự bấm dựng.
+Muốn dùng OpenAI cho biên tập và các công cụ tri thức, cách dễ nhất là mở nút thiết lập trên đầu trang, nhập khóa, chọn mô hình tri thức, mô hình giọng đọc và trần chi phí rồi bấm **Kiểm tra và lưu OpenAI**. Phép kiểm tra chỉ đọc thông tin mô hình, không tạo nội dung tính phí; nó xác nhận khóa hợp lệ và nhìn thấy mô hình, chưa khẳng định khóa có quyền gọi Responses hoặc giọng đọc. Quyền của từng điểm cuối được kiểm tra ở lần sử dụng thật đầu tiên. API chỉ ghi khóa sau khi kiểm tra đạt và đổi nhà cung cấp ngay, không cần khởi động lại.
 
-Để bật trọn luồng video và sách nói, thêm các giá trị chỉ nằm ở máy chủ:
+Trần chi phí tồn tại trong phạm vi một tiến trình API. Việc đổi khóa hoặc nhà cung cấp không xóa số đã dùng; bộ đếm chỉ trở về đầu khi tiến trình API khởi động lại.
+
+Muốn cấu hình không qua giao diện thì chép `.env.example` thành `.env`, đặt `AI_PROVIDER=openai`, thêm `OPENAI_API_KEY` và chọn giới hạn `AI_BUDGET_USD`. Khóa từ biến môi trường được đánh dấu là do máy chủ quản lý và giao diện không thể thay hay xóa. Văn bản chỉ được gửi cho mô hình tri thức khi OpenAI đang hoạt động; sách nói chỉ gửi nguồn đã chọn sau khi người dùng tự bấm dựng.
+
+Supadata cũng có thể được kiểm tra và lưu trên cùng trang; phép kiểm tra dùng yêu cầu xem trạng thái công việc mà Supadata công bố là không tính lượt. Muốn cấu hình không qua giao diện, thêm các giá trị chỉ nằm ở máy chủ:
 
 ```dotenv
 SUPADATA_API_KEY=your_key_here
@@ -76,7 +80,7 @@ Luồng được cố ý giữ rõ ràng: nhập một video → xem bản thô 
 
 Study Groups chưa được đưa vào 360GNH cho tới khi mô-đun đó ổn định và được rà soát riêng. Dự án cũng không chứa xác thực theo khách hàng, dữ liệu sản xuất, trình tải danh sách phát, xử lý âm thanh hàng loạt, cấu hình triển khai riêng hay bí mật của sản phẩm gốc.
 
-Bản `0.1.0` chỉ dùng bộ nhớ trong tiến trình, chưa có lưu trữ bền vững và chưa phù hợp để mở thành dịch vụ nhiều người dùng trên Internet.
+Bản `0.1.0` chỉ lưu bền vững thiết lập nhà cung cấp; nguồn và bài kiểm tra vẫn nằm trong bộ nhớ tiến trình rồi mất khi API khởi động lại. Dự án chưa phù hợp để mở thành dịch vụ nhiều người dùng trên Internet.
 
 ## Ranh giới pháp lý
 
@@ -88,7 +92,7 @@ Giọng đọc do AI tạo phải được thông báo cho người nghe. Không
 
 ## Bảo mật và đóng góp
 
-Máy chủ mặc định chỉ nghe trên máy cục bộ. Khóa OpenAI và Supadata chỉ nằm ở máy chủ; không nhúng chúng vào gói giao diện hay commit tệp `.env`. Hãy báo lỗ hổng qua [kênh báo cáo riêng](SECURITY.md), đừng đăng bí mật hoặc dữ liệu riêng tư vào issue công khai.
+Máy chủ mặc định chỉ nghe trên máy cục bộ. Khóa OpenAI và Supadata chỉ nằm ở máy chủ; không nhúng chúng vào gói giao diện, `localStorage` hay commit tệp `.env`. Tệp thiết lập dùng quyền `0600`, nhưng người kiểm soát tài khoản máy hoặc Docker vẫn có thể đọc bí mật phía máy chủ. Hãy báo lỗ hổng qua [kênh báo cáo riêng](SECURITY.md), đừng đăng bí mật hoặc dữ liệu riêng tư vào issue công khai.
 
 Muốn đóng góp thì đọc [CONTRIBUTING.md](CONTRIBUTING.md). Study Groups, dữ liệu khách hàng và mã riêng theo từng tổ chức vẫn cố ý nằm ngoài phạm vi.
 

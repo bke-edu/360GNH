@@ -257,6 +257,18 @@ export function useStudio(locale: Locale) {
     setSnapshot((current) => ({ ...current, error: null }));
   }, []);
 
+  const refreshMeta = useCallback(async () => {
+    try {
+      const meta = await studioApi.meta();
+      setSnapshot((current) => ({ ...current, meta, error: null }));
+    } catch (error) {
+      setSnapshot((current) => ({
+        ...current,
+        error: localizedError(error, locale),
+      }));
+    }
+  }, [locale]);
+
   return {
     snapshot,
     activeSource,
@@ -269,5 +281,6 @@ export function useStudio(locale: Locale) {
     run,
     grade,
     clearError,
+    refreshMeta,
   };
 }

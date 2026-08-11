@@ -21,6 +21,9 @@ services:
       OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-gpt-4o-mini-tts}
       AUDIOBOOK_MAX_CHARS: ${AUDIOBOOK_MAX_CHARS:-20000}
       AUDIOBOOK_SESSION_CHAR_BUDGET: ${AUDIOBOOK_SESSION_CHAR_BUDGET:-100000}
+      PROVIDER_SETTINGS_PATH: /app/apps/api/data/provider-settings.json
+    volumes:
+      - provider-settings:/app/apps/api/data
     ports:
       - 127.0.0.1:4310:4310
     restart: unless-stopped
@@ -89,3 +92,6 @@ services:
       options:
         max-size: 10m
         max-file: '3'
+
+volumes:
+  provider-settings:

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   AudiobookRenderer,
+  AudiobookUsageBudget,
   InMemoryKnowledgeRepository,
   KnowledgeStudio,
   MockKnowledgeModel,
@@ -160,6 +161,37 @@ describe('audiobook workflow', () => {
     ).rejects.toThrow(/90/);
     await expect(
       renderer.render({ text: 'y'.repeat(40), voice: 'coral', speed: 1 }),
+    ).rejects.toThrow(/ngân sách/i);
+  });
+
+  it('keeps audiobook spend when the speech renderer is replaced', async () => {
+    const usageBudget = new AudiobookUsageBudget(120);
+    const provider: SpeechProvider = {
+      id: 'test-speech',
+      model: 'voice-v1',
+      maxInputCharacters: 100,
+      synthesize: ({ text }) => Promise.resolve(pcmWave([...Buffer.from(text)])),
+    };
+    const first = new AudiobookRenderer(provider, {
+      maxBookCharacters: 100,
+      maxSessionCharacters: 120,
+      usageBudget,
+    });
+    const text = 'Đây là đoạn đầu tiên đủ dài để được dựng thành một tệp sách nói hoàn chỉnh.';
+    await first.render({ text, voice: 'coral', speed: 1 });
+
+    const replacement = new AudiobookRenderer(
+      { ...provider, model: 'voice-v2' },
+      {
+        maxBookCharacters: 100,
+        maxSessionCharacters: 120,
+        usageBudget,
+      },
+    );
+
+    expect(replacement.snapshot().spentCharacters).toBe(text.length);
+    await expect(
+      replacement.render({ text: 'x'.repeat(50), voice: 'coral', speed: 1 }),
     ).rejects.toThrow(/ngân sách/i);
   });
 });

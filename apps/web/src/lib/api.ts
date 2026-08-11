@@ -3,6 +3,7 @@ import type {
   DebateResult,
   KnowledgeSource,
   Mindmap,
+  ProviderSettingsStatus,
   Quiz,
   QuizGrade,
   SmartClip,
@@ -75,8 +76,25 @@ async function requestBlob(path: string, init: RequestInit): Promise<Blob> {
 const post = <T>(path: string, body: unknown): Promise<T> =>
   request<T>(path, { method: 'POST', body: JSON.stringify(body) });
 
+const put = <T>(path: string, body: unknown): Promise<T> =>
+  request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+
+const remove = <T>(path: string): Promise<T> => request<T>(path, { method: 'DELETE' });
+
 export const studioApi = {
   meta: (): Promise<StudioMeta> => request('/api/v1/meta'),
+  providerSettings: (): Promise<ProviderSettingsStatus> => request('/api/v1/settings/providers'),
+  saveOpenAI: (input: {
+    apiKey: string;
+    model: 'gpt-5.6-luna' | 'gpt-5.6-terra' | 'gpt-5.6' | 'gpt-5.6-sol';
+    budgetUsd: number;
+    ttsModel: 'gpt-4o-mini-tts' | 'tts-1' | 'tts-1-hd';
+  }): Promise<ProviderSettingsStatus> => put('/api/v1/settings/providers/openai', input),
+  deleteOpenAI: (): Promise<ProviderSettingsStatus> => remove('/api/v1/settings/providers/openai'),
+  saveSupadata: (input: { apiKey: string }): Promise<ProviderSettingsStatus> =>
+    put('/api/v1/settings/providers/supadata', input),
+  deleteSupadata: (): Promise<ProviderSettingsStatus> =>
+    remove('/api/v1/settings/providers/supadata'),
   listSources: (): Promise<KnowledgeSource[]> => request('/api/v1/sources'),
   seedDemo: (): Promise<KnowledgeSource> => post('/api/v1/demo/seed', {}),
   addSource: (input: {

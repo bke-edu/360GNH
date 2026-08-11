@@ -13,10 +13,12 @@ import type {
   YouTubeTranscriptProvider,
 } from '@360gnh/core';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
 import { SpeechProviderError } from '../src/openai-speech.js';
+import { ProviderRegistry } from '../src/provider-registry.js';
+import type { ProviderSettingsPort, ProviderSettingsStatus } from '../src/provider-settings.js';
 
 function makeApp(
   apiToken?: string,
@@ -139,6 +141,87 @@ describe('HTTP API', () => {
       .expect(200);
   });
 
+  it('manages provider keys through write-only authenticated settings routes', async () => {
+    const missingStatus: ProviderSettingsStatus = {
+      setupRecommended: true,
+      openai: {
+        configured: false,
+        source: 'missing',
+        model: 'gpt-5.6-luna',
+        budgetUsd: 1,
+        ttsModel: 'gpt-4o-mini-tts',
+        knowledgeModelEnabled: false,
+      },
+      supadata: { configured: false, source: 'missing' },
+    };
+    const storedStatus: ProviderSettingsStatus = {
+      ...missingStatus,
+      setupRecommended: false,
+      openai: {
+        ...missingStatus.openai,
+        configured: true,
+        source: 'stored',
+        keyHint: '••••5678',
+        knowledgeModelEnabled: true,
+      },
+    };
+    const saveOpenAI = vi.fn(() => Promise.resolve(storedStatus));
+    const providerSettings: ProviderSettingsPort = {
+      status: () => missingStatus,
+      saveOpenAI,
+      deleteOpenAI: vi.fn(() => Promise.resolve(missingStatus)),
+      saveSupadata: vi.fn(() => Promise.resolve(missingStatus)),
+      deleteSupadata: vi.fn(() => Promise.resolve(missingStatus)),
+    };
+    const studio = new KnowledgeStudio(new InMemoryKnowledgeRepository(), new MockKnowledgeModel());
+    const app = createApp({ studio, apiToken: 'internal-token', providerSettings });
+
+    await request(app).get('/api/v1/settings/providers').expect(401);
+    const initial = await request(app)
+      .get('/api/v1/settings/providers')
+      .set('Authorization', 'Bearer internal-token')
+      .expect('Cache-Control', /no-store/)
+      .expect(200);
+    expect(parseBody<DataEnvelope<ProviderSettingsStatus>>(initial).data).toEqual(missingStatus);
+
+    const saved = await request(app)
+      .put('/api/v1/settings/providers/openai')
+      .set('Authorization', 'Bearer internal-token')
+      .send({
+        apiKey: 'test-openai-key-12345678',
+        model: 'gpt-5.6-luna',
+        budgetUsd: 1,
+        ttsModel: 'gpt-4o-mini-tts',
+      })
+      .expect('Cache-Control', /no-store/)
+      .expect(200);
+    expect(saveOpenAI).toHaveBeenCalledWith({
+      apiKey: 'test-openai-key-12345678',
+      model: 'gpt-5.6-luna',
+      budgetUsd: 1,
+      ttsModel: 'gpt-4o-mini-tts',
+    });
+    expect(saved.text).not.toContain('test-openai-key');
+    expect(parseBody<DataEnvelope<ProviderSettingsStatus>>(saved).data.openai.keyHint).toBe(
+      '••••5678',
+    );
+
+    const invalid = await request(app)
+      .put('/api/v1/settings/providers/openai')
+      .set('Authorization', 'Bearer internal-token')
+      .send({
+        apiKey: 'short',
+        model: 'invented-model',
+        budgetUsd: -1,
+        ttsModel: 'invented-voice-model',
+      })
+      .expect(400);
+    expect(invalid.headers['cache-control']).toContain('no-store');
+    expect(invalid.text).not.toContain('short');
+    expect(invalid.text).not.toContain('invented-model');
+    expect(saveOpenAI).toHaveBeenCalledOnce();
+  });
+
   it('rejects unknown debate personas', async () => {
     const app = makeApp();
     const seed = await request(app).post('/api/v1/demo/seed').send({}).expect(201);
@@ -209,6 +292,39 @@ describe('HTTP API', () => {
     const edited = parseBody<DataEnvelope<KnowledgeSource>>(editedResponse).data;
     expect(edited.editedText).toContain('Đây là nội dung phụ đề');
     expect(edited.rawText).toBe(imported.rawText);
+  });
+
+  it('pins one provider bundle across every part of a long-running request', async () => {
+    const firstModel = new MockKnowledgeModel();
+    const replacementModel = new MockKnowledgeModel();
+    const calls: string[] = [];
+    const firstEdit = firstModel.editTranscript.bind(firstModel);
+    const replacementEdit = replacementModel.editTranscript.bind(replacementModel);
+    const registry = new ProviderRegistry({ model: firstModel });
+
+    firstModel.editTranscript = async (input) => {
+      calls.push('first');
+      if (input.part === 1) registry.replace({ model: replacementModel });
+      return firstEdit(input);
+    };
+    replacementModel.editTranscript = async (input) => {
+      calls.push('replacement');
+      return replacementEdit(input);
+    };
+    const studio = new KnowledgeStudio(new InMemoryKnowledgeRepository(), registry);
+    const source = await studio.ingest({
+      title: 'Nguồn dài để thử đổi nhà cung cấp',
+      text: 'Một đoạn nội dung có nghĩa và đủ dài để chia thành nhiều phần. '.repeat(350),
+    });
+    const app = createApp({ studio, providerRegistry: registry });
+
+    await request(app)
+      .post(`/api/v1/sources/${source.id}/edit`)
+      .send({ targetLanguage: 'source' })
+      .expect(200);
+
+    expect(calls.length).toBeGreaterThan(1);
+    expect(new Set(calls)).toEqual(new Set(['first']));
   });
 
   it('renders one audiobook file and leaves bulk download out of the public API', async () => {
@@ -303,14 +419,14 @@ describe('runtime configuration', () => {
     expect(() => loadConfig({ HOST: '0.0.0.0', AI_PROVIDER: 'mock' })).toThrow(/API_TOKEN/);
   });
 
-  it('requires an OpenAI key only for the real provider', () => {
-    expect(() =>
-      loadConfig({
-        HOST: '127.0.0.1',
-        AI_PROVIDER: 'openai',
-        AI_BUDGET_USD: '1',
-      }),
-    ).toThrow(/OPENAI_API_KEY/);
+  it('starts without an OpenAI key so the local setup screen can configure it', () => {
+    const pendingSetup = loadConfig({
+      HOST: '127.0.0.1',
+      AI_PROVIDER: 'openai',
+      AI_BUDGET_USD: '1',
+    });
+    expect(pendingSetup.aiProvider).toBe('openai');
+    expect(pendingSetup.openaiApiKey).toBeUndefined();
     expect(loadConfig({ HOST: '127.0.0.1', AI_PROVIDER: 'mock' }).aiProvider).toBe('mock');
   });
 });

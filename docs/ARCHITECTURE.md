@@ -40,6 +40,14 @@ The model interface covers transcript editing, answers, mind maps, quizzes, stud
 
 Provider-specific response objects never cross into the domain API.
 
+### Runtime provider settings
+
+`ProviderSettingsService` owns the single-user provider configuration boundary. Environment variables have highest precedence and are read-only from the web interface. When no environment key exists, the service reads and atomically writes a versioned JSON file with mode `0600`. Docker mounts that file's directory from a named volume visible only to the API container.
+
+`ProviderRegistry` implements the stable `KnowledgeModel` port and delegates each HTTP operation to one immutable provider-bundle snapshot. Saving a key first verifies credentials, constructs the affected candidate providers, writes the settings atomically, and then swaps the registry reference. Failed verification or storage leaves the prior bundle active; work already in flight finishes on the bundle it started with. Shared process-level usage ledgers survive provider swaps, so rotating Supadata or OpenAI cannot reset model or speech spending. OpenAI verification reads model metadata without generating content; this confirms key validity and model visibility, not endpoint-specific generation permission. Supadata verification checks a deliberately absent job identifier because documented job-status checks do not consume transcript credits.
+
+The browser receives only provider state, configuration values that are not secret, and a four-character key hint. It never receives a stored key. See [ADR 0001](adr/0001-server-side-provider-settings.md).
+
 ### `YouTubeTranscriptProvider`
 
 The core accepts a provider-neutral transcript port. The public API adapter uses Supadata's native-caption mode through a fixed provider endpoint, supports immediate and asynchronous job responses, and treats YouTube oEmbed metadata as optional. The adapter never receives raw credentials in a URL and cannot be redirected to an arbitrary host by the caller.
@@ -66,7 +74,7 @@ Agent identifiers are unique and bounded. The orchestrator remains sequential in
 ## Non-goals for `0.1.x`
 
 - public multi-user hosting;
-- persistent storage;
+- persistent source and project storage;
 - file upload or arbitrary URL fetching;
 - tenant authentication and authorization;
 - background jobs, queues, or distributed cost accounting;

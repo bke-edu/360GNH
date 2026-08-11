@@ -7,7 +7,7 @@
 [![CI](https://github.com/nguyenduyhung1989/360GNH/actions/workflows/ci.yml/badge.svg)](https://github.com/nguyenduyhung1989/360GNH/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-f7c928.svg)](LICENSE)
 
-360GNH is a provider-neutral TypeScript engine and local-first web demo extracted from the strongest reusable ideas in a privately maintained knowledge platform. The complete interface is available in English and Vietnamese, remembers the reader's choice, and follows the browser language on first use. It works without an API key by default, then lets maintainers opt into the OpenAI Responses API behind an explicit cost ceiling.
+360GNH is a provider-neutral TypeScript engine and local-first web demo extracted from the strongest reusable ideas in a privately maintained knowledge platform. The complete interface is available in English and Vietnamese, remembers the reader's choice, and follows the browser language on first use. It works without an API key by default, then offers a server-backed setup screen for OpenAI and Supadata.
 
 ![Knowledge Studio desktop interface](docs/assets/knowledge-studio-desktop.png)
 
@@ -29,7 +29,7 @@ The deterministic local model makes the full vertical slice inspectable and test
 
 ## Status
 
-`0.1.0` is an early public release. The demo is intentionally in-memory and single-process: restarting the API removes sources and quizzes. It is suitable for local evaluation and contribution, not yet for public multi-user hosting.
+`0.1.0` is an early public release. Sources and quizzes are intentionally in-memory and single-process: restarting the API removes them. Provider settings alone persist in a private server-side file. The application is suitable for local evaluation and contribution, not yet for public multi-user hosting.
 
 ## Quick start
 
@@ -40,7 +40,7 @@ npm ci
 npm run dev
 ```
 
-Open <http://127.0.0.1:4311>. The API starts at <http://127.0.0.1:4310> and seeds an original bilingual learning-science fixture on first load. Use the **VI / EN** control in the header to switch the entire interface; local model outputs follow the query language.
+Open <http://127.0.0.1:4311>. The API starts at <http://127.0.0.1:4310> and seeds an original bilingual learning-science fixture on first load. A key-free installation opens provider setup once and still lets you enter the local demo. Reopen it later with the settings button in the header. Use the **VI / EN** control to switch the entire interface; local model outputs follow the query language.
 
 Useful commands:
 
@@ -52,7 +52,7 @@ npm run check
 
 ### Keep it running with Docker
 
-Docker Compose builds a non-root API container and a separate static web container. Both bind to loopback and use `restart: unless-stopped`, so they return automatically whenever Docker starts. The browser reaches the protected API through the web proxy; provider keys never enter the web bundle or image layers.
+Docker Compose builds a non-root API container and a separate static web container. Both bind to loopback and use `restart: unless-stopped`, so they return automatically whenever Docker starts. The browser reaches the protected API through the web proxy; provider keys never enter the web bundle or image layers. Keys entered in the interface persist in an API-only named volume as an atomic `0600` file.
 
 For the key-free local model:
 
@@ -61,9 +61,9 @@ cp .env.example .env
 ./scripts/docker-up.sh
 ```
 
-The helper generates a fresh internal `API_TOKEN` when none is already set. If you invoke Compose directly instead, set that value yourself.
+The helper generates a fresh internal `API_TOKEN` when none is already set. If you invoke Compose directly instead, set that value yourself. Open the settings screen to verify and save OpenAI or Supadata keys; no environment-file editing is required.
 
-To reuse an existing private environment file without copying its keys into this repository:
+Environment variables remain available for headless operation and always override interface-managed keys. To reuse an existing private environment file without copying its keys into this repository:
 
 ```bash
 AI_PROVIDER=openai ./scripts/docker-up.sh /absolute/path/to/private.env
@@ -71,9 +71,11 @@ AI_PROVIDER=openai ./scripts/docker-up.sh /absolute/path/to/private.env
 
 Open <http://127.0.0.1:4311>. Check status with `docker compose ps`; view bounded logs with `docker compose logs --tail 100`. Rebuild only after source or dependency changes. The current in-memory adapter still loses imported sources when the API container restarts.
 
-## Optional OpenAI adapter
+## Provider setup and optional OpenAI adapter
 
-The default `mock` provider never needs a key. To test a real model, copy `.env.example` to `.env`, then set:
+The default `mock` provider never needs a key. The easiest real-model path is the settings button in the header: enter a key, choose the knowledge and speech models, set the process-local cost ceiling, then press **Verify and save OpenAI**. Verification reads model metadata and does not generate billable content; it proves key validity and model visibility, not permission to call Responses or speech. Those endpoint permissions are checked by the first real operation. The API writes only after verification succeeds, switches providers without restarting, and returns only a four-character hint.
+
+For headless configuration, copy `.env.example` to `.env`, then set:
 
 ```dotenv
 AI_PROVIDER=openai
@@ -82,13 +84,13 @@ OPENAI_MODEL=gpt-5.6-luna
 AI_BUDGET_USD=1
 ```
 
-The budget is process-local and reserves a conservative maximum before each request, so concurrent calls cannot all pass the same remaining-balance check. Prices for built-in model IDs are documented in code with a verification date; unknown models require explicit input and output rates.
+The budget is process-local and reserves a conservative maximum before each request, so concurrent calls cannot all pass the same remaining-balance check. Provider changes preserve spent and reserved usage until the API process restarts. Prices for built-in model IDs are documented in code with a verification date; unknown models require explicit input and output rates.
 
-Never commit `.env`. Knowledge-model calls send source text to OpenAI only when `AI_PROVIDER=openai`; speech sends the selected source only after a user explicitly starts audiobook rendering.
+Never commit `.env` or the generated provider-settings file. Environment credentials are shown as server-managed and cannot be replaced or deleted through the web interface. Knowledge-model calls send source text to OpenAI only when the OpenAI model is active; speech sends the selected source only after a user explicitly starts audiobook rendering.
 
 ## Optional media workflow
 
-The default demo still accepts pasted text without external services. Add these server-only values to enable the complete media path:
+The default demo still accepts pasted text without external services. Supadata can also be verified and saved from the settings screen; its check uses a documented free job-status request. For headless setup, add these server-only values:
 
 ```dotenv
 # Import one public YouTube video's native captions.
@@ -149,6 +151,7 @@ See [Legal and responsible-use notes](docs/LEGAL.md), [Provenance](docs/PROVENAN
 - Retrieved source text is XML-escaped and marked as untrusted data before model calls.
 - Quiz answer material is removed from the learner-facing response until grading.
 - OpenAI Responses calls use `store: false` and a configurable cost ceiling.
+- Provider setup uses authenticated `PUT`/`DELETE` routes, never returns complete keys, and writes an atomic `0600` file in an API-only volume. Host or Docker administrators can still read local server secrets.
 - YouTube import, transcript editing, and audiobook rendering share a stricter expensive-operation rate limit; audiobook text is reserved against a process-local character budget before paid calls begin.
 
 Please report vulnerabilities through [GitHub private vulnerability reporting](SECURITY.md), not a public issue.

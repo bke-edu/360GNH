@@ -24,6 +24,38 @@ const DEFAULT_QUERIES: Record<Locale, string> = {
 };
 
 const ERROR_COPY: Record<string, Record<Locale, string>> = {
+  PROVIDER_UNAVAILABLE: {
+    vi: 'Chưa kết nối được với dịch vụ để kiểm tra khóa. Hãy thử lại sau.',
+    en: 'The provider could not be reached to verify the key. Try again later.',
+  },
+  PROVIDER_AUTH_FAILED: {
+    vi: 'Khóa hoặc quyền truy cập mô hình không hợp lệ.',
+    en: 'The key or selected model permissions are invalid.',
+  },
+  PROVIDER_MODEL_UNAVAILABLE: {
+    vi: 'Tài khoản chưa dùng được một trong các mô hình đã chọn.',
+    en: 'The account cannot use one of the selected models.',
+  },
+  PROVIDER_PLAN_REQUIRED: {
+    vi: 'Tài khoản dịch vụ cần một gói đang hoạt động.',
+    en: 'The provider account needs an active plan.',
+  },
+  PROVIDER_RATE_LIMITED: {
+    vi: 'Dịch vụ đang giới hạn lượt kiểm tra. Hãy thử lại sau.',
+    en: 'The provider is rate-limiting verification. Try again later.',
+  },
+  PROVIDER_MANAGED_BY_ENVIRONMENT: {
+    vi: 'Khóa này do biến môi trường quản lý; hãy sửa tệp môi trường rồi khởi động lại.',
+    en: 'This key is managed by environment variables; update them and restart instead.',
+  },
+  PROVIDER_SETTINGS_WRITE_FAILED: {
+    vi: 'Không ghi được khóa vào kho bí mật phía máy chủ.',
+    en: 'The key could not be written to the server-side secret store.',
+  },
+  PROVIDER_SETTINGS_UNAVAILABLE: {
+    vi: 'Máy chủ chưa bật nơi lưu thiết lập nhà cung cấp.',
+    en: 'The server has not enabled provider settings storage.',
+  },
   FEATURE_UNAVAILABLE: {
     vi: 'Tính năng này chưa được cấu hình trên máy chủ.',
     en: 'This feature is not configured on the server.',

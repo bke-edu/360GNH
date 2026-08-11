@@ -5,16 +5,17 @@ export class BudgetExceededError extends Error {
 }
 
 export class UsageBudget {
-  readonly #limitUsd: number;
+  #limitUsd: number;
   #spentUsd = 0;
   #calls = 0;
   readonly #reservations = new Map<symbol, number>();
 
   constructor(limitUsd: number) {
-    if (!Number.isFinite(limitUsd) || limitUsd < 0) {
-      throw new RangeError('Budget limit must be a non-negative finite number');
-    }
-    this.#limitUsd = limitUsd;
+    this.#limitUsd = validatedLimit(limitUsd);
+  }
+
+  setLimit(limitUsd: number): void {
+    this.#limitUsd = validatedLimit(limitUsd);
   }
 
   assertCanSpend(estimatedCostUsd: number): void {
@@ -52,10 +53,7 @@ export class UsageBudget {
     this.#reservations.delete(reservation);
     this.#spentUsd += usage.estimatedCostUsd;
     this.#calls += 1;
-    if (
-      usage.estimatedCostUsd > reserved + Number.EPSILON ||
-      this.#spentUsd > this.#limitUsd + Number.EPSILON
-    ) {
+    if (usage.estimatedCostUsd > reserved + Number.EPSILON) {
       throw new BudgetExceededError(
         `Settled model usage exceeded its reservation or configured budget ($${usage.estimatedCostUsd.toFixed(6)} actual, $${reserved.toFixed(6)} reserved)`,
       );
@@ -87,6 +85,13 @@ export class UsageBudget {
     for (const value of this.#reservations.values()) total += value;
     return total;
   }
+}
+
+function validatedLimit(value: number): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError('Budget limit must be a non-negative finite number');
+  }
+  return value;
 }
 
 function assertCost(value: number, label: string): void {

@@ -15,6 +15,7 @@ export interface SpeechProvider {
 export interface AudiobookRendererOptions {
   maxBookCharacters: number;
   maxSessionCharacters: number;
+  usageBudget?: AudiobookUsageBudget;
 }
 
 export interface AudiobookRenderInput {
@@ -43,12 +44,54 @@ export interface AudiobookBudgetSnapshot {
   calls: number;
 }
 
+export interface AudiobookUsageSnapshot {
+  limitCharacters: number;
+  spentCharacters: number;
+  remainingCharacters: number;
+  calls: number;
+}
+
+export class AudiobookUsageBudget {
+  #limitCharacters: number;
+  #spentCharacters = 0;
+  #calls = 0;
+
+  constructor(limitCharacters: number) {
+    this.#limitCharacters = validatedCharacterLimit(limitCharacters);
+  }
+
+  setLimit(limitCharacters: number): void {
+    this.#limitCharacters = validatedCharacterLimit(limitCharacters);
+  }
+
+  reserve(characters: number): void {
+    if (!Number.isInteger(characters) || characters < 0) {
+      throw new RangeError('Reserved characters must be a non-negative integer');
+    }
+    if (this.#spentCharacters + characters > this.#limitCharacters) {
+      throw new Error('Ngân sách ký tự sách nói của phiên máy chủ đã hết');
+    }
+    this.#spentCharacters += characters;
+  }
+
+  recordCall(): void {
+    this.#calls += 1;
+  }
+
+  snapshot(): AudiobookUsageSnapshot {
+    return {
+      limitCharacters: this.#limitCharacters,
+      spentCharacters: this.#spentCharacters,
+      remainingCharacters: Math.max(0, this.#limitCharacters - this.#spentCharacters),
+      calls: this.#calls,
+    };
+  }
+}
+
 export class AudiobookRenderer {
   readonly #provider: SpeechProvider;
   readonly #maxBookCharacters: number;
-  readonly #maxSessionCharacters: number;
-  #spentCharacters = 0;
-  #calls = 0;
+  readonly #usageBudget: AudiobookUsageBudget;
 
   constructor(provider: SpeechProvider, options: AudiobookRendererOptions) {
     if (!Number.isInteger(provider.maxInputCharacters) || provider.maxInputCharacters < 16) {
@@ -65,7 +108,8 @@ export class AudiobookRenderer {
     }
     this.#provider = provider;
     this.#maxBookCharacters = options.maxBookCharacters;
-    this.#maxSessionCharacters = options.maxSessionCharacters;
+    this.#usageBudget =
+      options.usageBudget ?? new AudiobookUsageBudget(options.maxSessionCharacters);
   }
 
   async render(input: AudiobookRenderInput): Promise<RenderedAudiobook> {
@@ -73,9 +117,6 @@ export class AudiobookRenderer {
     if (text.length < 40) throw new Error('Audiobook text must contain at least 40 characters');
     if (text.length > this.#maxBookCharacters) {
       throw new Error(`Audiobook text cannot exceed ${this.#maxBookCharacters} characters`);
-    }
-    if (this.#spentCharacters + text.length > this.#maxSessionCharacters) {
-      throw new Error('Ngân sách ký tự sách nói của phiên máy chủ đã hết');
     }
     if (!input.voice.trim()) throw new Error('A speech voice is required');
     if (!Number.isFinite(input.speed) || input.speed < 0.25 || input.speed > 4) {
@@ -85,11 +126,11 @@ export class AudiobookRenderer {
     // Reserve the whole job before the first paid call so concurrent requests
     // cannot both slip past the session cap. Failed calls remain counted as a
     // conservative cost guard because providers may still bill them.
-    this.#spentCharacters += text.length;
+    this.#usageBudget.reserve(text.length);
     const chunks = splitTextForSpeech(text, this.#provider.maxInputCharacters);
     const waveChunks: Buffer[] = [];
     for (const chunk of chunks) {
-      this.#calls += 1;
+      this.#usageBudget.recordCall();
       waveChunks.push(
         await this.#provider.synthesize({
           text: chunk,
@@ -110,16 +151,21 @@ export class AudiobookRenderer {
   }
 
   snapshot(): AudiobookBudgetSnapshot {
+    const usage = this.#usageBudget.snapshot();
     return {
       provider: this.#provider.id,
       model: this.#provider.model,
       maxBookCharacters: this.#maxBookCharacters,
-      limitCharacters: this.#maxSessionCharacters,
-      spentCharacters: this.#spentCharacters,
-      remainingCharacters: Math.max(0, this.#maxSessionCharacters - this.#spentCharacters),
-      calls: this.#calls,
+      ...usage,
     };
   }
+}
+
+function validatedCharacterLimit(value: number): number {
+  if (!Number.isInteger(value) || value < 1) {
+    throw new RangeError('Character budget limit must be a positive integer');
+  }
+  return value;
 }
 
 export function splitTextForSpeech(input: string, maxCharacters: number): string[] {

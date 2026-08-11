@@ -17,6 +17,13 @@ import helmet from 'helmet';
 import { z, ZodError } from 'zod';
 import { TranscriptProviderError, TranscriptUnavailableError } from './supadata-transcript.js';
 import { SpeechProviderError } from './openai-speech.js';
+import {
+  OpenAISettingsInputSchema,
+  ProviderSetupError,
+  SupadataSettingsInputSchema,
+} from './provider-settings.js';
+import type { ProviderSettingsPort } from './provider-settings.js';
+import type { ProviderRegistry } from './provider-registry.js';
 
 const SourceIdsSchema = z.array(z.string().uuid()).min(1).max(50).optional();
 const QuerySchema = z.object({
@@ -93,9 +100,13 @@ export interface AppOptions {
   studio: KnowledgeStudio;
   apiToken?: string;
   webOrigins?: string[];
-  youtubeTranscriptProvider?: YouTubeTranscriptProvider;
-  audiobookRenderer?: AudiobookRenderer;
+  youtubeTranscriptProvider?: ProviderAccessor<YouTubeTranscriptProvider>;
+  audiobookRenderer?: ProviderAccessor<AudiobookRenderer>;
+  providerSettings?: ProviderSettingsPort;
+  providerRegistry?: Pick<ProviderRegistry, 'withSnapshot'>;
 }
+
+type ProviderAccessor<T> = T | (() => T | undefined);
 
 export function createDefaultStudio(model: KnowledgeStudio['model']): KnowledgeStudio {
   return new KnowledgeStudio(new InMemoryKnowledgeRepository(), model);
@@ -106,6 +117,12 @@ export function createApp(options: AppOptions): express.Express {
   const quizStore = new Map<string, { quiz: Quiz; expiresAt: number }>();
   const origins = new Set(options.webOrigins ?? ['http://127.0.0.1:4311']);
   const expensiveOperationLimit = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+  });
+  const providerSettingsLimit = rateLimit({
     windowMs: 60_000,
     limit: 10,
     standardHeaders: 'draft-7',
@@ -133,28 +150,80 @@ export function createApp(options: AppOptions): express.Express {
     }),
   );
   app.use(authentication(options.apiToken));
+  if (options.providerRegistry) {
+    app.use((_request, _response, next) => options.providerRegistry?.withSnapshot(next));
+  }
+  app.use('/api/v1/settings/providers', (_request, response, next) => {
+    response.set('Cache-Control', 'no-store');
+    next();
+  });
 
   app.get('/health', (_request, response) => {
     response.json({ status: 'ok' });
   });
 
   app.get('/api/v1/meta', (_request, response) => {
+    const audiobookRenderer = resolveProvider(options.audiobookRenderer);
+    const youtubeTranscriptProvider = resolveProvider(options.youtubeTranscriptProvider);
     response.json({
       data: {
         provider: options.studio.model.provider,
         model: options.studio.model.model,
         debateAgents: DEFAULT_AGENTS,
         features: {
-          youtubeImport: Boolean(options.youtubeTranscriptProvider),
+          youtubeImport: Boolean(youtubeTranscriptProvider),
           transcriptEditing: true,
-          audiobook: Boolean(options.audiobookRenderer),
+          audiobook: Boolean(audiobookRenderer),
         },
-        ...(options.audiobookRenderer
-          ? { audiobook: { ...options.audiobookRenderer.snapshot(), voices: AUDIOBOOK_VOICES } }
+        ...(audiobookRenderer
+          ? { audiobook: { ...audiobookRenderer.snapshot(), voices: AUDIOBOOK_VOICES } }
           : {}),
       },
     });
   });
+
+  app.get('/api/v1/settings/providers', providerSettingsLimit, (_request, response) => {
+    const providerSettings = requireProviderSettings(options.providerSettings);
+    noStore(response).json({ data: providerSettings.status() });
+  });
+
+  app.put(
+    '/api/v1/settings/providers/openai',
+    providerSettingsLimit,
+    asyncRoute(async (request, response) => {
+      const providerSettings = requireProviderSettings(options.providerSettings);
+      const input = OpenAISettingsInputSchema.parse(request.body);
+      noStore(response).json({ data: await providerSettings.saveOpenAI(input) });
+    }),
+  );
+
+  app.delete(
+    '/api/v1/settings/providers/openai',
+    providerSettingsLimit,
+    asyncRoute(async (_request, response) => {
+      const providerSettings = requireProviderSettings(options.providerSettings);
+      noStore(response).json({ data: await providerSettings.deleteOpenAI() });
+    }),
+  );
+
+  app.put(
+    '/api/v1/settings/providers/supadata',
+    providerSettingsLimit,
+    asyncRoute(async (request, response) => {
+      const providerSettings = requireProviderSettings(options.providerSettings);
+      const input = SupadataSettingsInputSchema.parse(request.body);
+      noStore(response).json({ data: await providerSettings.saveSupadata(input) });
+    }),
+  );
+
+  app.delete(
+    '/api/v1/settings/providers/supadata',
+    providerSettingsLimit,
+    asyncRoute(async (_request, response) => {
+      const providerSettings = requireProviderSettings(options.providerSettings);
+      noStore(response).json({ data: await providerSettings.deleteSupadata() });
+    }),
+  );
 
   app.get(
     '/api/v1/sources',
@@ -176,7 +245,8 @@ export function createApp(options: AppOptions): express.Express {
     '/api/v1/youtube/import',
     expensiveOperationLimit,
     asyncRoute(async (request, response) => {
-      if (!options.youtubeTranscriptProvider) {
+      const youtubeTranscriptProvider = resolveProvider(options.youtubeTranscriptProvider);
+      if (!youtubeTranscriptProvider) {
         throw new HttpError(
           503,
           'FEATURE_UNAVAILABLE',
@@ -189,7 +259,7 @@ export function createApp(options: AppOptions): express.Express {
           url: input.url,
           ...(input.language ? { language: input.language } : {}),
         },
-        options.youtubeTranscriptProvider,
+        youtubeTranscriptProvider,
       );
       response.status(201).json({ data: source });
     }),
@@ -214,7 +284,8 @@ export function createApp(options: AppOptions): express.Express {
     '/api/v1/audiobooks/render',
     expensiveOperationLimit,
     asyncRoute(async (request, response) => {
-      if (!options.audiobookRenderer) {
+      const audiobookRenderer = resolveProvider(options.audiobookRenderer);
+      if (!audiobookRenderer) {
         throw new HttpError(
           503,
           'FEATURE_UNAVAILABLE',
@@ -224,7 +295,7 @@ export function createApp(options: AppOptions): express.Express {
       const input = AudiobookSchema.parse(request.body);
       const source = await options.studio.repository.getSource(input.sourceId);
       if (!source) throw new HttpError(404, 'SOURCE_NOT_FOUND', 'Nguồn không còn tồn tại.');
-      const rendered = await options.audiobookRenderer.render({
+      const rendered = await audiobookRenderer.render({
         text: source.editedText ?? source.text,
         voice: input.voice,
         instructions: AUDIOBOOK_STYLE_INSTRUCTIONS[input.style],
@@ -358,7 +429,15 @@ export function createApp(options: AppOptions): express.Express {
     response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
   });
 
-  const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+  const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
+    if (error instanceof ProviderSetupError) {
+      noStore(response)
+        .status(error.status)
+        .json({
+          error: { code: error.code, message: error.message },
+        });
+      return;
+    }
     if (error instanceof HttpError) {
       response.status(error.status).json({
         error: { code: error.code, message: error.message },
@@ -388,7 +467,9 @@ export function createApp(options: AppOptions): express.Express {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Request validation failed',
-          details: error.issues,
+          ...(request.path.startsWith('/api/v1/settings/providers')
+            ? {}
+            : { details: error.issues }),
         },
       });
       return;
@@ -477,6 +558,23 @@ function safeEqual(left: string, right: string): boolean {
 
 function parameter(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? '') : (value ?? '');
+}
+
+function resolveProvider<T>(accessor?: ProviderAccessor<T>): T | undefined {
+  return typeof accessor === 'function' ? (accessor as () => T | undefined)() : accessor;
+}
+
+function requireProviderSettings(providerSettings?: ProviderSettingsPort): ProviderSettingsPort {
+  if (providerSettings) return providerSettings;
+  throw new ProviderSetupError(
+    503,
+    'PROVIDER_SETTINGS_UNAVAILABLE',
+    'Provider settings are unavailable in this runtime.',
+  );
+}
+
+function noStore(response: Response): Response {
+  return response.set('Cache-Control', 'no-store');
 }
 
 function asyncRoute(

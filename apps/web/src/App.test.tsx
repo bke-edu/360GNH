@@ -65,6 +65,39 @@ const agents = [
   },
 ];
 
+let providerSettingsStatus: {
+  setupRecommended: boolean;
+  openai: {
+    configured: boolean;
+    source: 'environment' | 'stored' | 'missing';
+    keyHint?: string;
+    model: string;
+    budgetUsd: number;
+    ttsModel: string;
+    knowledgeModelEnabled: boolean;
+  };
+  supadata: {
+    configured: boolean;
+    source: 'environment' | 'stored' | 'missing';
+    keyHint?: string;
+  };
+};
+
+function missingProviderSettingsStatus(): typeof providerSettingsStatus {
+  return {
+    setupRecommended: true,
+    openai: {
+      configured: false,
+      source: 'missing',
+      model: 'gpt-5.6-luna',
+      budgetUsd: 1,
+      ttsModel: 'gpt-4o-mini-tts',
+      knowledgeModelEnabled: false,
+    },
+    supadata: { configured: false, source: 'missing' },
+  };
+}
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -75,6 +108,19 @@ function json(data: unknown, status = 200): Response {
 beforeEach(() => {
   localStorage.clear();
   localStorage.setItem('360gnh-locale', 'vi');
+  providerSettingsStatus = {
+    setupRecommended: false,
+    openai: {
+      configured: true,
+      source: 'environment',
+      keyHint: '••••5678',
+      model: 'gpt-5.6-luna',
+      budgetUsd: 1,
+      ttsModel: 'gpt-4o-mini-tts',
+      knowledgeModelEnabled: true,
+    },
+    supadata: { configured: true, source: 'environment', keyHint: '••••4321' },
+  };
   const NativeURL = globalThis.URL;
   class TestURL extends NativeURL {
     static override createObjectURL = vi.fn(() => 'blob:360gnh-audiobook');
@@ -107,6 +153,25 @@ beforeEach(() => {
             },
           }),
         );
+      }
+      if (path === '/api/v1/settings/providers' && !init?.method) {
+        return Promise.resolve(json({ data: providerSettingsStatus }));
+      }
+      if (path === '/api/v1/settings/providers/openai' && init?.method === 'PUT') {
+        providerSettingsStatus = {
+          ...providerSettingsStatus,
+          setupRecommended: false,
+          openai: {
+            configured: true,
+            source: 'stored',
+            keyHint: '••••5678',
+            model: 'gpt-5.6-luna',
+            budgetUsd: 1,
+            ttsModel: 'gpt-4o-mini-tts',
+            knowledgeModelEnabled: true,
+          },
+        };
+        return Promise.resolve(json({ data: providerSettingsStatus }));
       }
       if (path === '/api/v1/sources' && !init?.method) return Promise.resolve(json({ data: [] }));
       if (path === '/api/v1/demo/seed') return Promise.resolve(json({ data: source }, 201));
@@ -216,6 +281,74 @@ describe('Knowledge Studio app', () => {
     await user.click(screen.getByRole('button', { name: 'Chuyển sang nền tối' }));
     expect(screen.getByRole('button', { name: 'Chuyển sang nền giấy sáng' })).toBeInTheDocument();
     expect(localStorage.getItem('360gnh-theme')).toBe('dark');
+  });
+
+  it('opens first-run setup, saves a key server-side, and never persists it in the browser', async () => {
+    providerSettingsStatus = missingProviderSettingsStatus();
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Kết nối dịch vụ' })).toBeInTheDocument();
+    const keyInput = screen.getByLabelText('Khóa API OpenAI');
+    await user.type(keyInput, 'test-openai-key-12345678');
+    await user.click(screen.getByRole('button', { name: 'Kiểm tra và lưu OpenAI' }));
+
+    expect(
+      await screen.findByText(
+        'Đã xác minh khóa và quyền xem mô hình. Quyền tạo nội dung sẽ được kiểm tra khi dùng.',
+      ),
+    ).toBeInTheDocument();
+    expect(keyInput).toHaveValue('');
+    expect(screen.getByText('••••5678')).toBeInTheDocument();
+    const openAIRequest = vi
+      .mocked(fetch)
+      .mock.calls.find(
+        ([path, init]) => path === '/api/v1/settings/providers/openai' && init?.method === 'PUT',
+      );
+    expect(openAIRequest).toBeDefined();
+    const requestBody = openAIRequest?.[1]?.body;
+    expect(typeof requestBody).toBe('string');
+    if (typeof requestBody !== 'string') throw new Error('Expected a JSON request body');
+    expect(JSON.parse(requestBody) as unknown).toEqual({
+      apiKey: 'test-openai-key-12345678',
+      model: 'gpt-5.6-luna',
+      budgetUsd: 1,
+      ttsModel: 'gpt-4o-mini-tts',
+    });
+    const browserValues = Array.from({ length: localStorage.length }, (_value, index) =>
+      localStorage.getItem(localStorage.key(index) ?? ''),
+    );
+    expect(browserValues.join(' ')).not.toContain('test-openai-key');
+
+    await user.click(screen.getByRole('button', { name: 'Vào xưởng' }));
+    expect(await screen.findByRole('heading', { name: 'Nguồn thử nghiệm' })).toBeInTheDocument();
+  });
+
+  it('renders the complete provider setup in English', async () => {
+    localStorage.setItem('360gnh-locale', 'en');
+    providerSettingsStatus = missingProviderSettingsStatus();
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Connect providers' })).toBeInTheDocument();
+    expect(screen.getByLabelText('OpenAI API key')).toBeInTheDocument();
+    expect(screen.getByLabelText('Supadata API key')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Verify and save OpenAI' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enter the studio' })).toBeInTheDocument();
+  });
+
+  it('explains when an environment key powers speech but not the knowledge model', async () => {
+    providerSettingsStatus.openai.knowledgeModelEnabled = false;
+    const user = userEvent.setup();
+    render(<App />);
+
+    await screen.findByRole('heading', { name: 'Nguồn thử nghiệm' });
+    await user.click(screen.getByRole('button', { name: 'Thiết lập nhà cung cấp' }));
+
+    expect(
+      await screen.findByText(
+        'Khóa này hiện chỉ dùng cho giọng đọc. Máy chủ đang dùng mô hình demo cục bộ cho các công cụ tri thức.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('switches the complete interface to English and remembers the choice', async () => {

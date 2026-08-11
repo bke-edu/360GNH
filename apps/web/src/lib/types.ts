@@ -39,6 +39,28 @@ export interface StudioMeta {
   audiobook?: AudiobookMeta;
 }
 
+export type ProviderSettingsSource = 'environment' | 'stored' | 'missing';
+
+export interface ProviderSettingsStatus {
+  setupRecommended: boolean;
+  openai: {
+    configured: boolean;
+    source: ProviderSettingsSource;
+    keyHint?: string;
+    model: string;
+    budgetUsd: number;
+    ttsModel: string;
+    knowledgeModelEnabled: boolean;
+    verifiedAt?: string;
+  };
+  supadata: {
+    configured: boolean;
+    source: ProviderSettingsSource;
+    keyHint?: string;
+    verifiedAt?: string;
+  };
+}
+
 export interface StudioSnapshot {
   meta: StudioMeta | null;
   sources: KnowledgeSource[];

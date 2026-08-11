@@ -8,6 +8,7 @@ The roadmap is ordered by evidence and safety, not by feature count.
 - [x] deterministic no-key model and original fixture;
 - [x] cited answers, mind maps, quizzes, study guides, clips, and Agora debate;
 - [x] responsive React/Tailwind demo;
+- [x] bilingual first-run provider setup with server-only persistent keys;
 - [x] optional OpenAI Responses adapter with validation and cost reservations;
 - [x] single-video YouTube native-caption import with raw transcript retention;
 - [x] explicit transcript editing with length-ratio evidence and re-indexing;

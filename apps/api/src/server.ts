@@ -1,40 +1,24 @@
 import 'dotenv/config';
-import { AudiobookRenderer } from '@360gnh/core';
 import { createApp, createDefaultStudio } from './app.js';
 import { loadConfig } from './config.js';
-import { createModel } from './model-factory.js';
-import { OpenAISpeechProvider } from './openai-speech.js';
-import { SupadataTranscriptProvider } from './supadata-transcript.js';
+import { ProviderSettingsService } from './provider-settings.js';
 
 const config = loadConfig();
-const model = createModel(config);
-const studio = createDefaultStudio(model);
-const youtubeTranscriptProvider = config.supadataApiKey
-  ? new SupadataTranscriptProvider({ apiKey: config.supadataApiKey })
-  : undefined;
-const audiobookRenderer = config.openaiApiKey
-  ? new AudiobookRenderer(
-      new OpenAISpeechProvider({
-        apiKey: config.openaiApiKey,
-        model: config.openaiTtsModel,
-      }),
-      {
-        maxBookCharacters: config.audiobookMaxCharacters,
-        maxSessionCharacters: config.audiobookSessionCharacterBudget,
-      },
-    )
-  : undefined;
+const providerSettings = await ProviderSettingsService.bootstrap(config);
+const studio = createDefaultStudio(providerSettings.registry);
 const app = createApp({
   studio,
+  providerSettings,
+  providerRegistry: providerSettings.registry,
   ...(config.apiToken ? { apiToken: config.apiToken } : {}),
   webOrigins: config.webOrigins,
-  ...(youtubeTranscriptProvider ? { youtubeTranscriptProvider } : {}),
-  ...(audiobookRenderer ? { audiobookRenderer } : {}),
+  youtubeTranscriptProvider: () => providerSettings.registry.youtubeTranscriptProvider,
+  audiobookRenderer: () => providerSettings.registry.audiobookRenderer,
 });
 
 const server = app.listen(config.port, config.host, () => {
   console.log(
-    `360GNH API listening on http://${config.host}:${config.port} (${model.provider}/${model.model})`,
+    `360GNH API listening on http://${config.host}:${config.port} (${providerSettings.registry.provider}/${providerSettings.registry.model})`,
   );
 });
 

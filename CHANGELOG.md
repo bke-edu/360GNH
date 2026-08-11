@@ -8,6 +8,8 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 - hardened API and web container images plus a loopback-only Docker Compose stack that restarts with Docker;
 - an environment-safe startup helper that can reuse a private key file without copying it into the repository.
+- a bilingual first-run provider setup that verifies, stores, rotates, and removes OpenAI and Supadata keys without exposing them to the browser bundle;
+- a private API-only Docker volume and atomic `0600` settings file for provider credentials, with environment variables remaining read-only overrides.
 
 ## [0.1.1] - 2026-08-11
 

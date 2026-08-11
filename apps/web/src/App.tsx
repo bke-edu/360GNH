@@ -1,14 +1,16 @@
-import { Github, LibraryBig, ShieldCheck, X } from 'lucide-react';
+import { Github, LibraryBig, Settings2, ShieldCheck, X } from 'lucide-react';
 import { useState } from 'react';
 import { CitationRail } from './components/CitationRail.js';
 import { LocaleToggle } from './components/LocaleToggle.js';
 import { ModeNav } from './components/ModeNav.js';
+import { ProviderSettingsPanel } from './components/ProviderSettingsPanel.js';
 import { SourceRail } from './components/SourceRail.js';
 import { ThemeToggle } from './components/ThemeToggle.js';
 import { Workspace } from './components/Workspace.js';
 import { I18nProvider } from './lib/I18nProvider.js';
 import { useI18n } from './lib/i18n.js';
 import { useStudio } from './lib/useStudio.js';
+import { useProviderSettings } from './lib/useProviderSettings.js';
 
 type StudioTheme = 'light' | 'dark';
 
@@ -45,7 +47,9 @@ function StudioApp() {
     run,
     grade,
     clearError,
+    refreshMeta,
   } = useStudio(locale);
+  const providerSettings = useProviderSettings(locale, refreshMeta);
   const [theme, setTheme] = useState(initialTheme);
   const hasExternalFeature = Boolean(
     snapshot.meta &&
@@ -72,7 +76,7 @@ function StudioApp() {
     >
       <a
         className="fixed top-3 left-3 z-60 -translate-y-40 border border-ink bg-paper-raised px-4 py-3 font-bold text-ink shadow-paper transition-transform focus:translate-y-0"
-        href="#main-workspace"
+        href={providerSettings.open ? '#provider-settings' : '#main-workspace'}
       >
         {pick('Đi tới bàn làm việc', 'Skip to workspace')}
       </a>
@@ -108,6 +112,18 @@ function StudioApp() {
             </span>
             <LocaleToggle />
             <ThemeToggle onToggle={toggleTheme} theme={theme} />
+            <button
+              aria-label={pick('Thiết lập nhà cung cấp', 'Configure providers')}
+              aria-pressed={providerSettings.open}
+              className="grid size-11 shrink-0 place-items-center rounded-full border border-line-strong bg-transparent text-ink-soft transition duration-150 hover:-rotate-2 hover:border-accent hover:bg-accent-soft hover:text-accent-hover active:scale-95"
+              onClick={
+                providerSettings.open ? providerSettings.closePanel : providerSettings.openPanel
+              }
+              title={pick('Thiết lập khóa API', 'API key settings')}
+              type="button"
+            >
+              <Settings2 aria-hidden="true" size={17} />
+            </button>
             <a
               aria-label={pick('Mở kho mã GitHub', 'Open GitHub repository')}
               className="hidden size-11 place-items-center rounded-full border border-line-strong bg-transparent text-ink-soft transition duration-150 hover:-translate-y-0.5 hover:border-accent hover:bg-accent-soft hover:text-accent-hover active:scale-95 sm:grid"
@@ -138,32 +154,47 @@ function StudioApp() {
         </div>
       ) : null}
 
-      <main
-        className="mx-auto grid min-h-[calc(100dvh-4.25rem)] w-full min-w-0 max-w-[96rem] grid-cols-1 border-x border-line lg:grid-cols-[16rem_minmax(0,1fr)] 2xl:grid-cols-[16rem_minmax(42rem,1fr)_18rem]"
-        id="main-workspace"
-      >
-        <SourceRail
-          activeSourceId={snapshot.activeSourceId}
-          busy={snapshot.busy}
-          onAdd={addSource}
-          onImportYouTube={importYouTube}
-          onSelect={selectSource}
-          sources={snapshot.sources}
-          youtubeImportAvailable={Boolean(snapshot.meta?.features?.youtubeImport)}
+      {providerSettings.open ? (
+        <ProviderSettingsPanel
+          busy={providerSettings.busy}
+          error={providerSettings.error}
+          notice={providerSettings.notice}
+          onClose={providerSettings.closePanel}
+          onDeleteOpenAI={providerSettings.deleteOpenAI}
+          onDeleteSupadata={providerSettings.deleteSupadata}
+          onRetry={providerSettings.reload}
+          onSaveOpenAI={providerSettings.saveOpenAI}
+          onSaveSupadata={providerSettings.saveSupadata}
+          status={providerSettings.status}
         />
-        <div className="flex min-w-0 flex-col">
-          <ModeNav active={snapshot.mode} onChange={setMode} />
-          <Workspace
-            activeSource={activeSource}
-            onEdit={editSource}
-            onGrade={grade}
-            onQueryChange={setQuery}
-            onRun={run}
-            snapshot={snapshot}
+      ) : (
+        <main
+          className="mx-auto grid min-h-[calc(100dvh-4.25rem)] w-full min-w-0 max-w-[96rem] grid-cols-1 border-x border-line lg:grid-cols-[16rem_minmax(0,1fr)] 2xl:grid-cols-[16rem_minmax(42rem,1fr)_18rem]"
+          id="main-workspace"
+        >
+          <SourceRail
+            activeSourceId={snapshot.activeSourceId}
+            busy={snapshot.busy}
+            onAdd={addSource}
+            onImportYouTube={importYouTube}
+            onSelect={selectSource}
+            sources={snapshot.sources}
+            youtubeImportAvailable={Boolean(snapshot.meta?.features?.youtubeImport)}
           />
-        </div>
-        <CitationRail citations={snapshot.citations} />
-      </main>
+          <div className="flex min-w-0 flex-col">
+            <ModeNav active={snapshot.mode} onChange={setMode} />
+            <Workspace
+              activeSource={activeSource}
+              onEdit={editSource}
+              onGrade={grade}
+              onQueryChange={setQuery}
+              onRun={run}
+              snapshot={snapshot}
+            />
+          </div>
+          <CitationRail citations={snapshot.citations} />
+        </main>
+      )}
 
       <footer className="mx-auto flex max-w-[96rem] flex-wrap justify-between gap-2 border-x border-t-4 border-double border-line-strong px-4 py-6 text-xs text-ink-faint md:px-6">
         <span className="font-semibold tracking-[0.12em] uppercase">

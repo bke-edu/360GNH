@@ -10,5 +10,5 @@ coverage/
 .vscode/
 playwright-report/
 test-results/
-apps/api/data/*.json
+apps/api/data/**
 !apps/api/data/.gitkeep

@@ -33,6 +33,9 @@ COPY --from=build --chown=node:node /app/packages/core/package.json ./packages/c
 COPY --from=build --chown=node:node /app/packages/core/dist ./packages/core/dist
 COPY --from=build --chown=node:node /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build --chown=node:node /app/apps/api/dist ./apps/api/dist
+RUN mkdir -p /app/apps/api/data \
+    && chown node:node /app/apps/api/data \
+    && chmod 0700 /app/apps/api/data
 
 USER node
 EXPOSE 4310
