@@ -1,0 +1,46 @@
+{
+  "name": "@360gnh/web",
+  "version": "0.1.0",
+  "description": "React and Tailwind demo for 360GNH Knowledge Studio.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "dev": "vite",
+    "lint": "eslint src --max-warnings 0",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@360gnh/core": "0.1.0",
+    "@fontsource-variable/fraunces": "^5.2.9",
+    "@fontsource/be-vietnam-pro": "^5.2.8",
+    "lucide-react": "^0.468.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/vite": "4.1.18",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.19.7",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "5.1.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "jsdom": "^27.3.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "tailwindcss": "4.1.18",
+    "vite": "7.3.6",
+    "vitest": "^4.0.18"
+  }
+}

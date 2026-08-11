@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: 'If 360GNH Knowledge Studio supports your work, please cite this software.'
+title: '360GNH Knowledge Studio'
+type: software
+version: 0.1.0
+authors:
+  - family-names: 'Nguyễn'
+    given-names: 'Duy Hưng'
+repository-code: 'https://github.com/nguyenduyhung1989/360GNH'
+url: 'https://github.com/nguyenduyhung1989/360GNH'
+license: MIT
+keywords:
+  - retrieval-augmented generation
+  - source-grounded learning
+  - knowledge studio
+  - TypeScript
+  - Vietnamese NLP

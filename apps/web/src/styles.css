@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Be Vietnam Pro', sans-serif;
+  --font-display: 'Fraunces Variable', serif;
+
+  --color-studio-950: oklch(0.13 0.018 155);
+  --color-studio-900: oklch(0.16 0.02 155);
+  --color-studio-850: oklch(0.18 0.022 155);
+  --color-studio-800: oklch(0.21 0.024 155);
+  --color-studio-700: oklch(0.31 0.03 155);
+  --color-studio-600: oklch(0.4 0.045 152);
+  --color-studio-500: oklch(0.49 0.055 150);
+
+  --color-linen-100: oklch(0.93 0.018 95);
+  --color-linen-400: oklch(0.74 0.02 120);
+  --color-linen-500: oklch(0.61 0.025 145);
+  --color-mint-300: oklch(0.73 0.11 160);
+  --color-danger-200: oklch(0.82 0.09 30);
+  --color-danger-400: oklch(0.67 0.17 28);
+
+  --shadow-studio: 0 1.3rem 3.8rem oklch(0.04 0.01 155 / 0.35);
+}

@@ -1,0 +1,10 @@
+{
+  "suite": "knowledge-studio-local-capability",
+  "fixture": "DEMO_SOURCE@0.1.0",
+  "provider": "local",
+  "model": "deterministic-demo-v1",
+  "passAt1": 1,
+  "passed": 4,
+  "total": 4,
+  "cases": ["cited-answer", "timestamped-clip", "valid-quiz", "bounded-debate"]
+}

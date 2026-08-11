@@ -1,0 +1,47 @@
+{
+  "name": "360gnh-knowledge-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Provider-neutral knowledge studio for cited chat, learning artifacts, and multi-perspective debate.",
+  "author": "Nguyễn Duy Hưng",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nguyenduyhung1989/360GNH.git"
+  },
+  "homepage": "https://github.com/nguyenduyhung1989/360GNH#readme",
+  "bugs": "https://github.com/nguyenduyhung1989/360GNH/issues",
+  "keywords": [
+    "knowledge-studio",
+    "retrieval-augmented-generation",
+    "source-grounded",
+    "learning-tools",
+    "typescript",
+    "vietnamese-nlp"
+  ],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @360gnh/core && npm run build -w @360gnh/api && npm run build -w @360gnh/web",
+    "check": "npm run format:check && npm run lint && npm run test && npm run build",
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev -w @360gnh/api\" \"npm run dev -w @360gnh/web\"",
+    "eval": "npm run eval -w @360gnh/core",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "npm run lint -w @360gnh/core && npm run lint -w @360gnh/api && npm run lint -w @360gnh/web",
+    "preflight": "npm run check && npm run eval && npm audit --omit=dev --audit-level=high",
+    "test": "npm run test -w @360gnh/core && npm run test -w @360gnh/api && npm run test -w @360gnh/web",
+    "test:coverage": "npm run test:coverage -w @360gnh/core && npm run test:coverage -w @360gnh/api && npm run test:coverage -w @360gnh/web"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.9.7",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2",
+    "typescript": "5.9.3"
+  }
+}

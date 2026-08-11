@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a focused, reusable Knowledge Studio capability.
+title: '[Feature]: '
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the real workflow or failure, not only a preferred implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and expected outcome
+      description: Explain who needs it and how success can be verified.
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This request is about Knowledge Studio and does not import Study Groups or tenant-specific private code.
+          required: true

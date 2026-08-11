@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible defect without private source material.
+title: '[Bug]: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 'Do not include API keys, credentials, personal data, or proprietary source text.'
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: 0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and the expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Use synthetic or public test data only.
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Verification already tried

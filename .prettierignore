@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+docs/assets/*.png
+playwright-report/
+test-results/
