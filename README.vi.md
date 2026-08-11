@@ -1,8 +1,10 @@
 # 360GNH Knowledge Studio
 
+**Ngôn ngữ:** [English](README.md) · Tiếng Việt
+
 360GNH lấy nội dung từ một video YouTube, giữ nguyên bản phụ đề thô, biên tập thành tài liệu sạch rồi biến cùng nguồn đó thành câu trả lời có trích dẫn, công cụ học hoặc một tệp sách nói.
 
-Đây là bản tách độc lập từ các ý tưởng dùng lại được của một nền tảng tri thức do Nguyễn Duy Hưng duy trì. Mặc định dự án chạy hoàn toàn cục bộ bằng mô hình giả lập có kết quả ổn định, không cần khóa API và không gửi dữ liệu ra ngoài.
+Đây là bản tách độc lập từ các ý tưởng dùng lại được của một nền tảng tri thức do Nguyễn Duy Hưng duy trì. Toàn bộ giao diện có cả tiếng Việt lẫn tiếng Anh, tự nhận ngôn ngữ trình duyệt ở lần đầu và nhớ lựa chọn của người dùng. Mặc định dự án chạy hoàn toàn cục bộ bằng mô hình giả lập có kết quả ổn định, không cần khóa API và không gửi dữ liệu ra ngoài.
 
 ![Giao diện Knowledge Studio trên máy tính](docs/assets/knowledge-studio-desktop.png)
 
@@ -15,7 +17,7 @@ npm ci
 npm run dev
 ```
 
-Mở <http://127.0.0.1:4311>. Máy chủ API chạy tại <http://127.0.0.1:4310>.
+Mở <http://127.0.0.1:4311>. Máy chủ API chạy tại <http://127.0.0.1:4310>. Dùng nút **VI / EN** trên đầu trang để đổi toàn bộ giao diện; đầu ra của mô hình cục bộ đi theo ngôn ngữ câu hỏi.
 
 ```bash
 npm test
@@ -55,6 +57,18 @@ Study Groups chưa được đưa vào 360GNH cho tới khi mô-đun đó ổn �
 
 Bản `0.1.0` chỉ dùng bộ nhớ trong tiến trình, chưa có lưu trữ bền vững và chưa phù hợp để mở thành dịch vụ nhiều người dùng trên Internet.
 
-Đọc thêm: [kiến trúc](docs/ARCHITECTURE.md), [mô hình đe dọa](docs/THREAT_MODEL.md), [nguồn gốc mã](docs/PROVENANCE.md), [lộ trình](docs/ROADMAP.md).
+## Ranh giới pháp lý
 
-Giấy phép: [MIT](LICENSE).
+Giấy phép MIT chỉ áp dụng cho mã và tài liệu gốc của 360GNH, không tự cấp quyền đối với video, phụ đề, bài viết hay giọng nói mà người dùng đưa vào. Nội dung xem công khai không đồng nghĩa với quyền tái bản. Người vận hành phải có quyền, giấy phép hoặc căn cứ hợp pháp để xử lý nội dung, đồng thời tuân thủ điều khoản hiện hành của dịch vụ họ tự bật.
+
+Giọng đọc do AI tạo phải được thông báo cho người nghe. Không giả giọng người thật khi chưa có quyền và sự đồng ý cần thiết.
+
+Đọc thêm: [lưu ý pháp lý và sử dụng có trách nhiệm](docs/LEGAL.md), [nguồn gốc mã](docs/PROVENANCE.md), [thông báo giấy phép bên thứ ba](THIRD_PARTY_NOTICES.md), [kiến trúc](docs/ARCHITECTURE.md), [mô hình đe dọa](docs/THREAT_MODEL.md), [lộ trình](docs/ROADMAP.md).
+
+## Bảo mật và đóng góp
+
+Máy chủ mặc định chỉ nghe trên máy cục bộ. Khóa OpenAI và Supadata chỉ nằm ở máy chủ; không nhúng chúng vào gói giao diện hay commit tệp `.env`. Hãy báo lỗ hổng qua [kênh báo cáo riêng](SECURITY.md), đừng đăng bí mật hoặc dữ liệu riêng tư vào issue công khai.
+
+Muốn đóng góp thì đọc [CONTRIBUTING.md](CONTRIBUTING.md). Study Groups, dữ liệu khách hàng và mã riêng theo từng tổ chức vẫn cố ý nằm ngoài phạm vi.
+
+Giấy phép dự án: [MIT](LICENSE). Phụ thuộc, phông chữ và biểu tượng giữ giấy phép riêng trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

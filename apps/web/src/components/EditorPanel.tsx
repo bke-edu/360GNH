@@ -1,6 +1,7 @@
 import { CheckCircle2, ExternalLink, FilePenLine, Languages, ScanText } from 'lucide-react';
 import { useState } from 'react';
 import type { TranscriptTargetLanguage } from '../lib/api.js';
+import { useI18n } from '../lib/i18n.js';
 import type { KnowledgeSource } from '../lib/types.js';
 
 interface EditorPanelProps {
@@ -10,12 +11,18 @@ interface EditorPanelProps {
 }
 
 export function EditorPanel({ source, busy, onEdit }: EditorPanelProps) {
+  const { locale, pick } = useI18n();
   const [targetLanguage, setTargetLanguage] = useState<TranscriptTargetLanguage>('source');
   const [view, setView] = useState<'raw' | 'edited'>(source?.editedText ? 'edited' : 'raw');
 
   if (!source) {
     return (
-      <EmptyEditor text="Nhập một video YouTube hoặc thêm văn bản trước, rồi quay lại đây để biên tập." />
+      <EmptyEditor
+        text={pick(
+          'Nhập một video YouTube hoặc thêm văn bản trước, rồi quay lại đây để biên tập.',
+          'Import a YouTube video or add text first, then return here to edit it.',
+        )}
+      />
     );
   }
 
@@ -29,14 +36,16 @@ export function EditorPanel({ source, busy, onEdit }: EditorPanelProps) {
       <header className="grid gap-4 border-b-4 border-double border-line-strong pb-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div>
           <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
-            YouTube → tài liệu sạch
+            {pick('YouTube → tài liệu sạch', 'YouTube → clean source')}
           </span>
           <h2 className="m-0 font-display text-3xl font-semibold tracking-tight">
-            Biên tập mà không làm rơi ý
+            {pick('Biên tập mà không làm rơi ý', 'Edit without losing meaning')}
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-soft">
-            Bản thô luôn được giữ lại. AI chỉ chạy khi mày bấm nút, và bản sạch sau đó mới trở thành
-            nguồn cho hỏi đáp, bản đồ, bài kiểm tra và sách nói.
+            {pick(
+              'Bản thô luôn được giữ lại. AI chỉ chạy khi mày bấm nút, và bản sạch sau đó mới trở thành nguồn cho hỏi đáp, bản đồ, bài kiểm tra và sách nói.',
+              'The raw transcript is always preserved. AI runs only when you press the button, and the clean version then becomes the source for chat, mind maps, quizzes, and audiobooks.',
+            )}
           </p>
         </div>
         {source.sourceUrl ? (
@@ -46,40 +55,46 @@ export function EditorPanel({ source, busy, onEdit }: EditorPanelProps) {
             rel="noreferrer"
             target="_blank"
           >
-            <ExternalLink aria-hidden="true" size={15} /> Video gốc
+            <ExternalLink aria-hidden="true" size={15} /> {pick('Video gốc', 'Original video')}
           </a>
         ) : null}
       </header>
 
       <ol className="grid gap-px border border-line bg-line sm:grid-cols-3">
-        <WorkflowStep done icon={ScanText} index="01" label="Đã lấy phụ đề" />
+        <WorkflowStep
+          done
+          icon={ScanText}
+          index="01"
+          label={pick('Đã lấy phụ đề', 'Transcript imported')}
+        />
         <WorkflowStep
           done={Boolean(editedText)}
           icon={FilePenLine}
           index="02"
-          label="Biên tập sạch"
+          label={pick('Biên tập sạch', 'Clean edit')}
         />
         <WorkflowStep
           done={Boolean(editedText)}
           icon={CheckCircle2}
           index="03"
-          label="Sẵn sàng tái dùng"
+          label={pick('Sẵn sàng tái dùng', 'Ready to reuse')}
         />
       </ol>
 
       <div className="grid gap-3 border-y border-line py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <label className="grid gap-2 text-xs font-semibold tracking-[0.08em] text-ink-faint uppercase">
           <span className="flex items-center gap-2">
-            <Languages aria-hidden="true" size={15} /> Ngôn ngữ bản sạch
+            <Languages aria-hidden="true" size={15} />{' '}
+            {pick('Ngôn ngữ bản sạch', 'Clean source language')}
           </span>
           <select
             className="min-h-11 w-full min-w-0 border border-line-strong bg-paper-raised px-3 text-sm text-ink outline-accent md:w-64"
             onChange={(event) => setTargetLanguage(event.target.value as TranscriptTargetLanguage)}
             value={targetLanguage}
           >
-            <option value="source">Giữ ngôn ngữ nguồn</option>
-            <option value="vi">Tiếng Việt</option>
-            <option value="en">Tiếng Anh</option>
+            <option value="source">{pick('Giữ ngôn ngữ nguồn', 'Keep source language')}</option>
+            <option value="vi">{pick('Tiếng Việt', 'Vietnamese')}</option>
+            <option value="en">{pick('Tiếng Anh', 'English')}</option>
           </select>
         </label>
         <button
@@ -91,39 +106,54 @@ export function EditorPanel({ source, busy, onEdit }: EditorPanelProps) {
           type="button"
         >
           <FilePenLine aria-hidden="true" size={17} />
-          {busy ? 'Đang biên tập…' : editedText ? 'Biên tập lại' : 'Biên tập bằng AI'}
+          {busy
+            ? pick('Đang biên tập…', 'Editing…')
+            : editedText
+              ? pick('Biên tập lại', 'Edit again')
+              : pick('Biên tập bằng AI', 'Edit with AI')}
         </button>
       </div>
 
       {source.editStats ? (
         <div className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-xs text-ink-faint">
-          <span>{source.editStats.parts} phần</span>
-          <span>Tỷ lệ từ: {source.editStats.wordRatio.toFixed(2)}×</span>
+          <span>
+            {source.editStats.parts} {pick('phần', 'part(s)')}
+          </span>
+          <span>
+            {pick('Tỷ lệ từ', 'Word ratio')}: {source.editStats.wordRatio.toFixed(2)}×
+          </span>
           <span>
             {source.editStats.provider}/{source.editStats.model}
           </span>
           <span>≈ ${source.editStats.estimatedCostUsd.toFixed(4)}</span>
           {warnings.length > 0 ? (
             <strong className="text-danger">
-              Cần rà lại độ dài: {warnings.map(warningLabel).join(', ')}
+              {pick('Cần rà lại độ dài', 'Review the output length')}:{' '}
+              {warnings.map((warning) => warningLabel(warning, locale)).join(', ')}
             </strong>
           ) : (
-            <strong className="text-success">Độ dài nằm trong vùng an toàn</strong>
+            <strong className="text-success">
+              {pick('Độ dài nằm trong vùng an toàn', 'Length is within the safe range')}
+            </strong>
           )}
         </div>
       ) : null}
 
       <section>
-        <div className="mb-3 flex border-b border-line" role="tablist" aria-label="Bản nội dung">
+        <div
+          className="mb-3 flex border-b border-line"
+          role="tablist"
+          aria-label={pick('Bản nội dung', 'Document version')}
+        >
           <DocumentTab active={view === 'raw'} onClick={() => setView('raw')}>
-            Bản thô
+            {pick('Bản thô', 'Raw transcript')}
           </DocumentTab>
           <DocumentTab
             active={view === 'edited'}
             disabled={!editedText}
             onClick={() => setView('edited')}
           >
-            Bản sạch
+            {pick('Bản sạch', 'Clean source')}
           </DocumentTab>
         </div>
         <div className="max-h-[34rem] overflow-y-auto border border-line-strong bg-paper-deep/25 p-4 md:p-6">
@@ -136,8 +166,14 @@ export function EditorPanel({ source, busy, onEdit }: EditorPanelProps) {
   );
 }
 
-function warningLabel(warning: 'possible-compression' | 'possible-expansion'): string {
-  return warning === 'possible-compression' ? 'có thể bị rút quá mạnh' : 'có thể bị thêm quá nhiều';
+function warningLabel(
+  warning: 'possible-compression' | 'possible-expansion',
+  locale: 'vi' | 'en',
+): string {
+  if (warning === 'possible-compression') {
+    return locale === 'vi' ? 'có thể bị rút quá mạnh' : 'possibly over-compressed';
+  }
+  return locale === 'vi' ? 'có thể bị thêm quá nhiều' : 'possibly over-expanded';
 }
 
 function WorkflowStep({

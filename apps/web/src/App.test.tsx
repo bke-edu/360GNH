@@ -74,6 +74,7 @@ function json(data: unknown, status = 200): Response {
 
 beforeEach(() => {
   localStorage.clear();
+  localStorage.setItem('360gnh-locale', 'vi');
   const NativeURL = globalThis.URL;
   class TestURL extends NativeURL {
     static override createObjectURL = vi.fn(() => 'blob:360gnh-audiobook');
@@ -215,5 +216,23 @@ describe('Knowledge Studio app', () => {
     await user.click(screen.getByRole('button', { name: 'Chuyển sang nền tối' }));
     expect(screen.getByRole('button', { name: 'Chuyển sang nền giấy sáng' })).toBeInTheDocument();
     expect(localStorage.getItem('360gnh-theme')).toBe('dark');
+  });
+
+  it('switches the complete interface to English and remembers the choice', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Nguồn thử nghiệm' });
+
+    await user.click(screen.getByRole('button', { name: 'English' }));
+
+    expect(screen.getByRole('tab', { name: 'Mind map' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Run selected tool' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Question or topic' })).toHaveValue(
+      'How do active recall and spaced practice work together?',
+    );
+    expect(screen.getByText(/no key needed to try/i)).toBeInTheDocument();
+    expect(localStorage.getItem('360gnh-locale')).toBe('en');
+    expect(document.documentElement.lang).toBe('en');
+    expect(document.title).toBe('360GNH · Knowledge Studio');
   });
 });

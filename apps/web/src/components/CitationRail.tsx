@@ -1,4 +1,5 @@
 import { ExternalLink, Quote } from 'lucide-react';
+import { useI18n } from '../lib/i18n.js';
 import type { Citation } from '../lib/types.js';
 
 interface CitationRailProps {
@@ -6,6 +7,7 @@ interface CitationRailProps {
 }
 
 export function CitationRail({ citations }: CitationRailProps) {
+  const { pick } = useI18n();
   const unique = citations.filter(
     (citation, index, all) =>
       all.findIndex(
@@ -17,10 +19,10 @@ export function CitationRail({ citations }: CitationRailProps) {
   return (
     <aside
       className="border-t border-line bg-paper-deep/45 p-4 lg:col-span-2 2xl:sticky 2xl:top-17 2xl:col-span-1 2xl:max-h-[calc(100dvh-4.25rem)] 2xl:min-h-[calc(100dvh-4.25rem)] 2xl:overflow-y-auto 2xl:border-t-0 2xl:border-l"
-      aria-label="Bằng chứng được dùng"
+      aria-label={pick('Bằng chứng được dùng', 'Evidence used')}
     >
       <div className="mb-4 flex items-baseline justify-between border-b border-line pb-3 text-xs font-semibold tracking-[0.16em] text-ink-faint uppercase">
-        <span>Bằng chứng</span>
+        <span>{pick('Bằng chứng', 'Evidence')}</span>
         <strong className="font-display text-xl font-semibold text-accent">
           {unique.length.toString().padStart(2, '0')}
         </strong>
@@ -29,7 +31,10 @@ export function CitationRail({ citations }: CitationRailProps) {
         <div className="grid min-h-48 place-content-center justify-items-center px-0 py-6 text-center text-ink-faint">
           <Quote className="mb-3 text-accent" aria-hidden="true" size={22} />
           <p className="max-w-xs font-body text-sm leading-relaxed text-ink-soft">
-            Chạy một công cụ. Đoạn nguồn chống “AI chém gió” sẽ hiện ở đây.
+            {pick(
+              'Chạy một công cụ. Đoạn nguồn chống “AI chém gió” sẽ hiện ở đây.',
+              'Run a tool. The source excerpts that keep AI honest will appear here.',
+            )}
           </p>
         </div>
       ) : (
@@ -56,7 +61,7 @@ export function CitationRail({ citations }: CitationRailProps) {
                     rel="noreferrer"
                     target="_blank"
                   >
-                    Mở nguồn <ExternalLink aria-hidden="true" size={12} />
+                    {pick('Mở nguồn', 'Open source')} <ExternalLink aria-hidden="true" size={12} />
                   </a>
                 ) : null}
               </div>

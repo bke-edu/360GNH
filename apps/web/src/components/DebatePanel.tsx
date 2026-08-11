@@ -1,5 +1,6 @@
 import { MessageCircleMore, Scale, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { useI18n } from '../lib/i18n.js';
 import type { AgoraAgent, DebateResult } from '../lib/types.js';
 
 interface DebatePanelProps {
@@ -10,6 +11,7 @@ interface DebatePanelProps {
 }
 
 export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
+  const { locale, pick } = useI18n();
   const [selected, setSelected] = useState(() => agents.slice(0, 3).map((agent) => agent.id));
 
   const toggle = (id: string) => {
@@ -22,13 +24,19 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
 
   return (
     <div>
-      <div className="grid gap-4" aria-label="Chọn người tranh luận">
+      <div
+        className="grid gap-4"
+        aria-label={pick('Chọn người tranh luận', 'Choose debate perspectives')}
+      >
         <div>
           <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
-            Hội đồng
+            {pick('Hội đồng', 'Panel')}
           </span>
           <small className="font-body text-sm text-ink-faint">
-            Chọn 2–4 góc nhìn. Mỗi bên phải trích nguồn.
+            {pick(
+              'Chọn 2–4 góc nhìn. Mỗi bên phải trích nguồn.',
+              'Choose 2–4 perspectives. Every side must cite the source.',
+            )}
           </small>
         </div>
         <div className="grid gap-2 md:grid-cols-2">
@@ -43,9 +51,9 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
                 className="row-span-2 size-4 min-h-0 accent-accent"
                 type="checkbox"
               />
-              <strong className="text-sm">{agent.name}</strong>
+              <strong className="text-sm">{agentCopy(agent, locale).name}</strong>
               <small className="font-body text-xs leading-relaxed text-ink-faint">
-                {agent.description}
+                {agentCopy(agent, locale).description}
               </small>
             </label>
           ))}
@@ -57,7 +65,9 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
           type="button"
         >
           <MessageCircleMore aria-hidden="true" size={17} />
-          {busy ? 'Đang mở phiên…' : 'Mở phiên tranh luận'}
+          {busy
+            ? pick('Đang mở phiên…', 'Opening session…')
+            : pick('Mở phiên tranh luận', 'Start debate')}
         </button>
       </div>
 
@@ -72,10 +82,14 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
               key={message.id}
             >
               <header className="mb-3 flex items-baseline justify-between gap-3">
-                <span className="font-display text-xl font-semibold">{message.agentName}</span>
+                <span className="font-display text-xl font-semibold">
+                  {agentName(message.agentId, message.agentName, locale)}
+                </span>
                 <small className="text-xs text-ink-faint">
-                  {message.phase === 'exploration' ? 'Mở góc nhìn' : 'Va chạm'} · vòng{' '}
-                  {message.round}
+                  {message.phase === 'exploration'
+                    ? pick('Mở góc nhìn', 'Exploration')
+                    : pick('Va chạm', 'Challenge')}{' '}
+                  · {pick('vòng', 'round')} {message.round}
                 </small>
               </header>
               <p className="font-body leading-relaxed text-ink-soft">{message.content}</p>
@@ -91,16 +105,18 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
               <Scale aria-hidden="true" size={22} />
               <div>
                 <span className="mb-1 block text-xs tracking-[0.14em] uppercase">
-                  Tổng hợp sau va chạm
+                  {pick('Tổng hợp sau va chạm', 'Synthesis after challenge')}
                 </span>
                 <h2 className="m-0 font-display text-3xl font-semibold text-ink">
-                  Không chọn phe hộ mày
+                  {pick('Không chọn phe hộ mày', 'No winner picked for you')}
                 </h2>
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <h3 className="text-sm font-semibold text-ink-soft">Điểm cùng đứng được</h3>
+                <h3 className="text-sm font-semibold text-ink-soft">
+                  {pick('Điểm cùng đứng được', 'Common ground')}
+                </h3>
                 <ul className="pl-5 font-body text-sm leading-relaxed text-ink-faint marker:text-accent">
                   {debate.summary.commonGround.map((item) => (
                     <li key={item}>{item}</li>
@@ -108,7 +124,9 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
                 </ul>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-ink-soft">Câu còn mở</h3>
+                <h3 className="text-sm font-semibold text-ink-soft">
+                  {pick('Câu còn mở', 'Open questions')}
+                </h3>
                 <ul className="pl-5 font-body text-sm leading-relaxed text-ink-faint marker:text-accent">
                   {debate.summary.openQuestions.map((item) => (
                     <li key={item}>{item}</li>
@@ -124,4 +142,31 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
       ) : null}
     </div>
   );
+}
+
+const ENGLISH_AGENTS: Record<string, { name: string; description: string }> = {
+  'evidence-auditor': {
+    name: 'Evidence auditor',
+    description: 'Separates facts from inference, demands sources, and flags weak evidence.',
+  },
+  'systems-critic': {
+    name: 'Systems critic',
+    description: 'Looks for side effects, feedback loops, and hidden assumptions.',
+  },
+  'field-practitioner': {
+    name: 'Field practitioner',
+    description: 'Tests every claim against real situations, costs, and feasibility.',
+  },
+  'curious-learner': {
+    name: 'Curious learner',
+    description: 'Asks simple-looking questions that force the underlying mechanism into view.',
+  },
+};
+
+function agentCopy(agent: AgoraAgent, locale: 'vi' | 'en') {
+  return locale === 'en' ? (ENGLISH_AGENTS[agent.id] ?? agent) : agent;
+}
+
+function agentName(id: string, fallback: string, locale: 'vi' | 'en'): string {
+  return locale === 'en' ? (ENGLISH_AGENTS[id]?.name ?? fallback) : fallback;
 }

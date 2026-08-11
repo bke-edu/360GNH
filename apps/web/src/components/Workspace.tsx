@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import type { TranscriptTargetLanguage } from '../lib/api.js';
+import { useI18n } from '../lib/i18n.js';
 import type { KnowledgeSource, StudioSnapshot } from '../lib/types.js';
 import { AudiobookPanel } from './AudiobookPanel.js';
 import { DebatePanel } from './DebatePanel.js';
@@ -34,6 +35,7 @@ export function Workspace({
   onGrade,
   onEdit,
 }: WorkspaceProps) {
+  const { pick } = useI18n();
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void onRun();
@@ -42,15 +44,15 @@ export function Workspace({
   return (
     <section
       className="min-w-0 flex-1 px-4 pt-6 pb-10 md:px-6 xl:px-8"
-      aria-label="Bàn làm việc tri thức"
+      aria-label={pick('Bàn làm việc tri thức', 'Knowledge workspace')}
     >
       <header className="mb-6 grid min-w-0 gap-5 border-b-4 border-double border-line-strong pb-7 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div className="min-w-0">
           <span className="mb-3 block text-xs font-semibold tracking-[0.2em] text-accent uppercase">
-            Đang làm việc với
+            {pick('Đang làm việc với', 'Working with')}
           </span>
           <h1 className="mb-0 max-w-4xl break-words font-display text-[clamp(2.35rem,1.7rem+2.6vw,4.6rem)] leading-[0.95] font-semibold tracking-[-0.045em]">
-            {activeSource?.title ?? 'Chưa có nguồn'}
+            {activeSource?.title ?? pick('Chưa có nguồn', 'No source selected')}
           </h1>
         </div>
         <div className="flex w-fit items-center gap-2 border border-line-strong bg-paper-raised px-3 py-2 font-mono text-xs text-ink-faint shadow-[2px_2px_0_var(--color-line)]">
@@ -59,7 +61,7 @@ export function Workspace({
           />
           {snapshot.meta
             ? `${snapshot.meta.provider} · ${snapshot.meta.model}`
-            : 'đang nối máy chủ'}
+            : pick('đang nối máy chủ', 'connecting to server')}
         </div>
       </header>
 
@@ -69,7 +71,7 @@ export function Workspace({
             className="mb-2 block text-xs font-semibold tracking-[0.08em] text-ink-faint uppercase"
             htmlFor="studio-query"
           >
-            Câu hỏi hoặc chủ đề
+            {pick('Câu hỏi hoặc chủ đề', 'Question or topic')}
           </label>
           <div className="relative min-w-0">
             <textarea
@@ -81,7 +83,7 @@ export function Workspace({
               value={snapshot.query}
             />
             <button
-              aria-label="Chạy công cụ đang chọn"
+              aria-label={pick('Chạy công cụ đang chọn', 'Run selected tool')}
               className="absolute right-3 bottom-3 grid size-11 place-items-center border border-accent bg-accent text-accent-contrast shadow-[2px_2px_0_var(--color-ink)] transition duration-150 hover:-translate-x-px hover:-translate-y-px hover:bg-accent-hover hover:shadow-[3px_3px_0_var(--color-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:grayscale disabled:opacity-50"
               disabled={snapshot.busy || !snapshot.activeSourceId || snapshot.mode === 'agora'}
               type="submit"
@@ -103,7 +105,7 @@ export function Workspace({
         {snapshot.busy ? (
           <LoadingState />
         ) : (
-          renderResult(snapshot, activeSource, onEdit, onRun, onGrade)
+          renderResult(snapshot, activeSource, onEdit, onRun, onGrade, pick)
         )}
       </div>
     </section>
@@ -116,6 +118,7 @@ function renderResult(
   onEdit: (sourceId: string, targetLanguage: TranscriptTargetLanguage) => Promise<boolean>,
   onRun: (agentIds?: string[]) => Promise<void>,
   onGrade: (answers: Record<string, string>) => Promise<void>,
+  pick: (vietnamese: string, english: string) => string,
 ) {
   switch (snapshot.mode) {
     case 'editor':
@@ -132,10 +135,10 @@ function renderResult(
         <article>
           <div className="mb-6">
             <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
-              Trả lời có căn cứ
+              {pick('Trả lời có căn cứ', 'Source-grounded answer')}
             </span>
             <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">
-              Không biết thì nói không biết
+              {pick('Không biết thì nói không biết', 'Uncertainty stays visible')}
             </h2>
           </div>
           <p className="max-w-[68ch] font-body text-[clamp(1.08rem,1.02rem+0.28vw,1.24rem)] leading-[1.8] text-ink-soft">
@@ -144,13 +147,16 @@ function renderResult(
           <footer className="flex items-center gap-2 border-t border-line pt-4 font-mono text-xs text-ink-faint">
             <Bot aria-hidden="true" size={15} />
             {snapshot.answer.usage.provider}/{snapshot.answer.usage.model} ·{' '}
-            {snapshot.answer.citations.length} đoạn nguồn
+            {snapshot.answer.citations.length} {pick('đoạn nguồn', 'source excerpt(s)')}
           </footer>
         </article>
       ) : (
         <EmptyResult
           icon={MessageSquareQuote}
-          text="Đặt câu hỏi; câu trả lời sẽ kéo theo đúng đoạn nguồn đã dùng."
+          text={pick(
+            'Đặt câu hỏi; câu trả lời sẽ kéo theo đúng đoạn nguồn đã dùng.',
+            'Ask a question; the answer will bring along the exact source excerpts it used.',
+          )}
         />
       );
     case 'mindmap':
@@ -158,10 +164,10 @@ function renderResult(
         <div className="overflow-hidden">
           <div className="mb-6">
             <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
-              Cấu trúc ý
+              {pick('Cấu trúc ý', 'Idea structure')}
             </span>
             <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">
-              Bản đồ có dấu vết nguồn
+              {pick('Bản đồ có dấu vết nguồn', 'Mind map with source traces')}
             </h2>
           </div>
           <MindmapTree node={snapshot.mindmap.root} />
@@ -169,7 +175,10 @@ function renderResult(
       ) : (
         <EmptyResult
           icon={Map}
-          text="Rút cấu trúc nhiều tầng mà vẫn giữ đoạn nguồn phía sau mỗi nhánh."
+          text={pick(
+            'Rút cấu trúc nhiều tầng mà vẫn giữ đoạn nguồn phía sau mỗi nhánh.',
+            'Extract a multi-level structure while retaining the source behind each branch.',
+          )}
         />
       );
     case 'quiz':
@@ -184,7 +193,10 @@ function renderResult(
       ) : (
         <EmptyResult
           icon={BookOpenCheck}
-          text="Tạo câu hỏi, làm ngay và chấm bằng đáp án giữ ở máy chủ."
+          text={pick(
+            'Tạo câu hỏi, làm ngay và chấm bằng đáp án giữ ở máy chủ.',
+            'Generate questions, answer them, and grade against keys kept on the server.',
+          )}
         />
       );
     case 'guide':
@@ -192,7 +204,7 @@ function renderResult(
         <article>
           <div className="mb-6">
             <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
-              Lộ trình đọc
+              {pick('Lộ trình đọc', 'Learning path')}
             </span>
             <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">
               {snapshot.guide.title}
@@ -216,7 +228,10 @@ function renderResult(
       ) : (
         <EmptyResult
           icon={BookOpenCheck}
-          text="Biến nguồn dài thành mục tiêu, cơ chế, đoạn học và câu tự kiểm tra."
+          text={pick(
+            'Biến nguồn dài thành mục tiêu, cơ chế, đoạn học và câu tự kiểm tra.',
+            'Turn a long source into objectives, mechanisms, learning sections, and review questions.',
+          )}
         />
       );
     case 'clips':
@@ -224,10 +239,10 @@ function renderResult(
         <div className="grid gap-3">
           <div className="mb-6">
             <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
-              Mốc đáng xem
+              {pick('Mốc đáng xem', 'Worthwhile moments')}
             </span>
             <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">
-              Đoạn thông minh: {snapshot.query}
+              {pick('Đoạn thông minh', 'Smart clips')}: {snapshot.query}
             </h2>
           </div>
           {snapshot.clips.map((clip) => (
@@ -246,7 +261,7 @@ function renderResult(
                   rel="noreferrer"
                   target="_blank"
                 >
-                  <Play aria-hidden="true" size={14} /> Mở đúng mốc
+                  <Play aria-hidden="true" size={14} /> {pick('Mở đúng mốc', 'Open timestamp')}
                 </a>
               ) : null}
             </article>
@@ -255,7 +270,10 @@ function renderResult(
       ) : (
         <EmptyResult
           icon={Clapperboard}
-          text="Tìm chủ đề trong bản ghi và nhảy về đúng khoảng thời gian của nguồn."
+          text={pick(
+            'Tìm chủ đề trong bản ghi và nhảy về đúng khoảng thời gian của nguồn.',
+            'Find a topic in the transcript and jump to its exact time range.',
+          )}
         />
       );
     case 'audiobook':
@@ -280,16 +298,23 @@ function renderResult(
 }
 
 function EmptyResult({ icon: Icon, text }: { icon: typeof Map; text: string }) {
+  const { pick } = useI18n();
   return (
     <div className="grid min-h-64 place-content-center justify-items-center p-6 text-center text-ink-faint">
       <Icon className="mb-3 text-accent" aria-hidden="true" size={30} />
       <p className="mb-2 max-w-xl font-body text-lg leading-relaxed text-ink-soft">{text}</p>
-      <small className="text-xs">Nhập chủ đề phía trên rồi bấm mũi tên.</small>
+      <small className="text-xs">
+        {pick(
+          'Nhập chủ đề phía trên rồi bấm mũi tên.',
+          'Enter a topic above, then press the arrow.',
+        )}
+      </small>
     </div>
   );
 }
 
 function LoadingState() {
+  const { pick } = useI18n();
   return (
     <div
       className="grid min-h-64 place-content-center justify-items-center p-6 text-center text-ink-faint"
@@ -297,7 +322,7 @@ function LoadingState() {
     >
       <LoaderCircle aria-hidden="true" className="mb-3 animate-spin text-accent" size={28} />
       <p className="max-w-xl font-body text-lg leading-relaxed text-ink-soft">
-        Đang lục nguồn và ráp kết quả…
+        {pick('Đang lục nguồn và ráp kết quả…', 'Searching sources and assembling the result…')}
       </p>
     </div>
   );

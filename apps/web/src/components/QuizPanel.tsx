@@ -2,6 +2,7 @@ import { Check, CircleHelp, X } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Quiz, QuizGrade } from '../lib/types.js';
+import { useI18n } from '../lib/i18n.js';
 
 interface QuizPanelProps {
   quiz: Quiz;
@@ -11,6 +12,7 @@ interface QuizPanelProps {
 }
 
 export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
+  const { pick } = useI18n();
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -22,7 +24,7 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
     <form onSubmit={submit}>
       <div className="mb-6">
         <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
-          Bài kiểm tra
+          {pick('Bài kiểm tra', 'Quiz')}
         </span>
         <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">{quiz.title}</h2>
       </div>
@@ -74,13 +76,16 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
                       type="radio"
                       value={option}
                     />
-                    <span>{option === 'true' ? 'Đúng' : 'Sai'}</span>
+                    <span>{option === 'true' ? pick('Đúng', 'True') : pick('Sai', 'False')}</span>
                   </label>
                 ))}
               </div>
             ) : (
               <textarea
-                aria-label={`Câu trả lời cho câu ${index + 1}`}
+                aria-label={pick(
+                  `Câu trả lời cho câu ${index + 1}`,
+                  `Answer for question ${index + 1}`,
+                )}
                 className="w-full border border-line-strong bg-paper p-3 font-body text-base leading-relaxed text-ink outline-accent focus:border-accent"
                 onChange={(event) =>
                   setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
@@ -115,14 +120,20 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
             <strong className="font-display text-xl text-accent">
               {grade.score}/{grade.autoGradable}
             </strong>{' '}
-            câu tự chấm đúng
+            {pick('câu tự chấm đúng', 'auto-graded correct')}
             {grade.total > grade.autoGradable
-              ? ` · ${grade.total - grade.autoGradable} câu chấm tay`
+              ? pick(
+                  ` · ${grade.total - grade.autoGradable} câu chấm tay`,
+                  ` · ${grade.total - grade.autoGradable} manual review`,
+                )
               : ''}
           </p>
         ) : (
           <p className="m-0 text-sm text-ink-faint">
-            Đáp án được giữ ở máy chủ; trình duyệt không thể sửa đúng sai.
+            {pick(
+              'Đáp án được giữ ở máy chủ; trình duyệt không thể sửa đúng sai.',
+              'Answer keys stay on the server; the browser cannot tamper with grading.',
+            )}
           </p>
         )}
         <button
@@ -130,7 +141,11 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
           disabled={busy}
           type="submit"
         >
-          {busy ? 'Đang chấm…' : grade ? 'Chấm lại' : 'Chấm bài'}
+          {busy
+            ? pick('Đang chấm…', 'Grading…')
+            : grade
+              ? pick('Chấm lại', 'Grade again')
+              : pick('Chấm bài', 'Grade quiz')}
         </button>
       </div>
     </form>

@@ -2,6 +2,7 @@ import { Download, Headphones, LoaderCircle, Mic2, ShieldCheck, Volume2 } from '
 import { useEffect, useMemo, useState } from 'react';
 import { studioApi } from '../lib/api.js';
 import type { AudiobookStyle } from '../lib/api.js';
+import { localizedError, useI18n } from '../lib/i18n.js';
 import type { KnowledgeSource, StudioMeta } from '../lib/types.js';
 
 interface AudiobookPanelProps {
@@ -9,14 +10,35 @@ interface AudiobookPanelProps {
   meta: StudioMeta | null;
 }
 
-const STYLE_OPTIONS: Array<{ value: AudiobookStyle; label: string; note: string }> = [
-  { value: 'narrative', label: 'Kể chuyện', note: 'ấm, có nhịp' },
-  { value: 'educational', label: 'Giảng bài', note: 'rõ thuật ngữ' },
-  { value: 'calm', label: 'Bình tĩnh', note: 'chậm và dịu' },
-  { value: 'cheerful', label: 'Tươi sáng', note: 'thân thiện' },
+const STYLE_OPTIONS: Array<{
+  value: AudiobookStyle;
+  label: { vi: string; en: string };
+  note: { vi: string; en: string };
+}> = [
+  {
+    value: 'narrative',
+    label: { vi: 'Kể chuyện', en: 'Narrative' },
+    note: { vi: 'ấm, có nhịp', en: 'warm and paced' },
+  },
+  {
+    value: 'educational',
+    label: { vi: 'Giảng bài', en: 'Educational' },
+    note: { vi: 'rõ thuật ngữ', en: 'clear terminology' },
+  },
+  {
+    value: 'calm',
+    label: { vi: 'Bình tĩnh', en: 'Calm' },
+    note: { vi: 'chậm và dịu', en: 'slow and gentle' },
+  },
+  {
+    value: 'cheerful',
+    label: { vi: 'Tươi sáng', en: 'Cheerful' },
+    note: { vi: 'thân thiện', en: 'friendly' },
+  },
 ];
 
 export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
+  const { locale, pick } = useI18n();
   const voices = meta?.audiobook?.voices ?? ['coral'];
   const [voice, setVoice] = useState(voices.includes('coral') ? 'coral' : (voices[0] ?? 'coral'));
   const [style, setStyle] = useState<AudiobookStyle>('narrative');
@@ -37,8 +59,11 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
   const tooLong = maxCharacters > 0 && text.length > maxCharacters;
   const supportsReadingStyle = !['tts-1', 'tts-1-hd'].includes(meta?.audiobook?.model ?? '');
   const sourceLabel = useMemo(
-    () => (source?.editedText ? 'bản sạch đã biên tập' : 'nội dung nguồn hiện tại'),
-    [source?.editedText],
+    () =>
+      source?.editedText
+        ? pick('bản sạch đã biên tập', 'the edited clean source')
+        : pick('nội dung nguồn hiện tại', 'the current source'),
+    [pick, source?.editedText],
   );
 
   const render = async () => {
@@ -52,18 +77,36 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
         return URL.createObjectURL(audio);
       });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Chưa dựng được sách nói.');
+      setError(
+        localizedError(
+          reason,
+          locale,
+          pick('Chưa dựng được sách nói.', 'The audiobook could not be rendered.'),
+        ),
+      );
     } finally {
       setBusy(false);
     }
   };
 
   if (!source) {
-    return <EmptyAudiobook text="Chọn một nguồn trước; sách nói sẽ đọc đúng nguồn đó." />;
+    return (
+      <EmptyAudiobook
+        text={pick(
+          'Chọn một nguồn trước; sách nói sẽ đọc đúng nguồn đó.',
+          'Select a source first; the audiobook will read that exact source.',
+        )}
+      />
+    );
   }
   if (!meta?.features.audiobook || !meta.audiobook) {
     return (
-      <EmptyAudiobook text="Máy chủ chưa có OPENAI_API_KEY nên chưa thể dựng giọng đọc thật." />
+      <EmptyAudiobook
+        text={pick(
+          'Máy chủ chưa có OPENAI_API_KEY nên chưa thể dựng giọng đọc thật.',
+          'OPENAI_API_KEY is not configured, so real speech rendering is unavailable.',
+        )}
+      />
     );
   }
 
@@ -71,31 +114,44 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
     <article className="grid gap-6">
       <header className="border-b-4 border-double border-line-strong pb-5">
         <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
-          Tài liệu → một tệp âm thanh
+          {pick('Tài liệu → một tệp âm thanh', 'Source → one audio file')}
         </span>
-        <h2 className="m-0 font-display text-3xl font-semibold tracking-tight">Dựng sách nói</h2>
+        <h2 className="m-0 font-display text-3xl font-semibold tracking-tight">
+          {pick('Dựng sách nói', 'Render an audiobook')}
+        </h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          Đọc {sourceLabel}. Văn bản được chia ở ranh giới câu, dựng tuần tự rồi ráp thành đúng một
-          tệp WAV — không có tải hàng loạt.
+          {pick('Đọc', 'Reads')} {sourceLabel}.{' '}
+          {pick(
+            'Văn bản được chia ở ranh giới câu, dựng tuần tự rồi ráp thành đúng một tệp WAV — không có tải hàng loạt.',
+            'Text is split at sentence boundaries, rendered sequentially, and merged into exactly one WAV file—there is no bulk workflow.',
+          )}
         </p>
       </header>
 
       <div className="grid gap-px border border-line bg-line md:grid-cols-3">
-        <Metric label="Nguồn" value={source.title} />
-        <Metric label="Độ dài" value={`${text.length.toLocaleString('vi-VN')} ký tự`} />
-        <Metric label="Máy đọc" value={`${meta.audiobook.provider}/${meta.audiobook.model}`} />
+        <Metric label={pick('Nguồn', 'Source')} value={source.title} />
+        <Metric
+          label={pick('Độ dài', 'Length')}
+          value={`${text.length.toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} ${pick('ký tự', 'characters')}`}
+        />
+        <Metric
+          label={pick('Máy đọc', 'Speech engine')}
+          value={`${meta.audiobook.provider}/${meta.audiobook.model}`}
+        />
       </div>
 
       {tooLong ? (
         <p className="m-0 border border-danger bg-danger-soft p-3 text-sm text-danger" role="alert">
-          Nguồn dài hơn giới hạn {maxCharacters.toLocaleString('vi-VN')} ký tự của bản trình diễn.
-          Hãy chia thành chương trước khi dựng.
+          {pick(
+            `Nguồn dài hơn giới hạn ${maxCharacters.toLocaleString('vi-VN')} ký tự của bản trình diễn. Hãy chia thành chương trước khi dựng.`,
+            `The source exceeds the demo limit of ${maxCharacters.toLocaleString('en-US')} characters. Split it into chapters before rendering.`,
+          )}
         </p>
       ) : null}
 
       <div className="grid gap-5 border-y border-line py-5 lg:grid-cols-2">
         <label className="grid gap-2 text-xs font-semibold tracking-[0.08em] text-ink-faint uppercase">
-          Giọng đọc
+          {pick('Giọng đọc', 'Voice')}
           <select
             className="min-h-11 w-full min-w-0 border border-line-strong bg-paper-raised px-3 text-sm text-ink outline-accent"
             onChange={(event) => setVoice(event.target.value)}
@@ -109,15 +165,15 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
           </select>
         </label>
         <label className="grid gap-2 text-xs font-semibold tracking-[0.08em] text-ink-faint uppercase">
-          Tốc độ
+          {pick('Tốc độ', 'Speed')}
           <select
             className="min-h-11 w-full min-w-0 border border-line-strong bg-paper-raised px-3 text-sm text-ink outline-accent"
             onChange={(event) => setSpeed(Number(event.target.value))}
             value={speed}
           >
-            <option value={0.85}>Chậm</option>
-            <option value={1}>Tự nhiên</option>
-            <option value={1.15}>Nhanh</option>
+            <option value={0.85}>{pick('Chậm', 'Slow')}</option>
+            <option value={1}>{pick('Tự nhiên', 'Natural')}</option>
+            <option value={1.15}>{pick('Nhanh', 'Fast')}</option>
           </select>
         </label>
         <fieldset
@@ -125,7 +181,7 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
           disabled={!supportsReadingStyle}
         >
           <legend className="mb-2 text-xs font-semibold tracking-[0.08em] text-ink-faint uppercase">
-            Cách đọc
+            {pick('Cách đọc', 'Reading style')}
           </legend>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {STYLE_OPTIONS.map((option) => (
@@ -140,14 +196,17 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
                 onClick={() => setStyle(option.value)}
                 type="button"
               >
-                <strong className="block text-sm">{option.label}</strong>
-                <small className="text-xs text-ink-faint">{option.note}</small>
+                <strong className="block text-sm">{option.label[locale]}</strong>
+                <small className="text-xs text-ink-faint">{option.note[locale]}</small>
               </button>
             ))}
           </div>
           {!supportsReadingStyle ? (
             <small className="normal-case text-ink-faint">
-              Mô hình giọng đọc này chỉ hỗ trợ chọn giọng và tốc độ.
+              {pick(
+                'Mô hình giọng đọc này chỉ hỗ trợ chọn giọng và tốc độ.',
+                'This speech model supports only voice and speed controls.',
+              )}
             </small>
           ) : null}
         </fieldset>
@@ -165,11 +224,16 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
           ) : (
             <Mic2 aria-hidden="true" size={17} />
           )}
-          {busy ? 'Đang dựng và ráp…' : 'Dựng sách nói'}
+          {busy
+            ? pick('Đang dựng và ráp…', 'Rendering and merging…')
+            : pick('Dựng sách nói', 'Render audiobook')}
         </button>
         <span className="flex items-center gap-2 text-xs text-ink-faint">
           <ShieldCheck aria-hidden="true" className="text-success" size={15} />
-          Giọng đọc do AI tạo; khóa chỉ nằm ở máy chủ.
+          {pick(
+            'Giọng đọc do AI tạo; khóa chỉ nằm ở máy chủ.',
+            'AI-generated voice; the key stays server-side.',
+          )}
         </span>
       </div>
 
@@ -183,10 +247,11 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
         <section className="grid gap-4 border border-line-strong bg-paper-deep/25 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div className="min-w-0">
             <span className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[0.1em] text-success uppercase">
-              <Volume2 aria-hidden="true" size={15} /> Đã ráp xong một tệp
+              <Volume2 aria-hidden="true" size={15} />{' '}
+              {pick('Đã ráp xong một tệp', 'One file is ready')}
             </span>
             <audio className="w-full" controls src={audioUrl}>
-              Trình duyệt không phát được tệp WAV.
+              {pick('Trình duyệt không phát được tệp WAV.', 'Your browser cannot play WAV audio.')}
             </audio>
           </div>
           <a
@@ -194,7 +259,7 @@ export function AudiobookPanel({ source, meta }: AudiobookPanelProps) {
             download="360gnh-audiobook.wav"
             href={audioUrl}
           >
-            <Download aria-hidden="true" size={17} /> Tải tệp WAV
+            <Download aria-hidden="true" size={17} /> {pick('Tải tệp WAV', 'Download WAV')}
           </a>
         </section>
       ) : null}

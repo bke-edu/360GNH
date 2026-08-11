@@ -1,31 +1,45 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { studioApi } from './api.js';
+import { defaultQuery, localizedError } from './i18n.js';
+import type { Locale } from './i18n.js';
 import type { StudioMode, StudioSnapshot } from './types.js';
 import type { TranscriptTargetLanguage } from './api.js';
 
-const INITIAL_QUERY = 'Nhớ chủ động và ôn cách quãng phối hợp ra sao?';
+function initialSnapshot(locale: Locale): StudioSnapshot {
+  return {
+    meta: null,
+    sources: [],
+    activeSourceId: null,
+    mode: 'chat',
+    query: defaultQuery(locale),
+    busy: true,
+    error: null,
+    citations: [],
+    answer: null,
+    mindmap: null,
+    quiz: null,
+    quizGrade: null,
+    guide: null,
+    clips: [],
+    debate: null,
+  };
+}
 
-const initialSnapshot: StudioSnapshot = {
-  meta: null,
-  sources: [],
-  activeSourceId: null,
-  mode: 'chat',
-  query: INITIAL_QUERY,
-  busy: true,
-  error: null,
-  citations: [],
-  answer: null,
-  mindmap: null,
-  quiz: null,
-  quizGrade: null,
-  guide: null,
-  clips: [],
-  debate: null,
-};
-
-export function useStudio() {
-  const [snapshot, setSnapshot] = useState(initialSnapshot);
+export function useStudio(locale: Locale) {
+  const [snapshot, setSnapshot] = useState(() => initialSnapshot(locale));
   const initialized = useRef(false);
+  const previousLocale = useRef(locale);
+
+  useEffect(() => {
+    const priorLocale = previousLocale.current;
+    if (priorLocale === locale) return;
+    previousLocale.current = locale;
+    setSnapshot((current) => ({
+      ...current,
+      query: current.query === defaultQuery(priorLocale) ? defaultQuery(locale) : current.query,
+      error: null,
+    }));
+  }, [locale]);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -45,10 +59,14 @@ export function useStudio() {
           busy: false,
         }));
       } catch (error) {
-        setSnapshot((current) => ({ ...current, busy: false, error: messageOf(error) }));
+        setSnapshot((current) => ({
+          ...current,
+          busy: false,
+          error: localizedError(error, locale),
+        }));
       }
     })();
-  }, []);
+  }, [locale]);
 
   const activeSource = useMemo(
     () => snapshot.sources.find((source) => source.id === snapshot.activeSourceId) ?? null,
@@ -80,30 +98,41 @@ export function useStudio() {
         }));
         return true;
       } catch (error) {
-        setSnapshot((current) => ({ ...current, busy: false, error: messageOf(error) }));
+        setSnapshot((current) => ({
+          ...current,
+          busy: false,
+          error: localizedError(error, locale),
+        }));
         return false;
       }
     },
-    [],
+    [locale],
   );
 
-  const importYouTube = useCallback(async (input: { url: string; language?: 'vi' | 'en' }) => {
-    setSnapshot((current) => ({ ...current, busy: true, error: null }));
-    try {
-      const source = await studioApi.importYouTube(input);
-      setSnapshot((current) => ({
-        ...current,
-        busy: false,
-        sources: [source, ...current.sources.filter((item) => item.id !== source.id)],
-        activeSourceId: source.id,
-        mode: 'editor',
-      }));
-      return true;
-    } catch (error) {
-      setSnapshot((current) => ({ ...current, busy: false, error: messageOf(error) }));
-      return false;
-    }
-  }, []);
+  const importYouTube = useCallback(
+    async (input: { url: string; language?: 'vi' | 'en' }) => {
+      setSnapshot((current) => ({ ...current, busy: true, error: null }));
+      try {
+        const source = await studioApi.importYouTube(input);
+        setSnapshot((current) => ({
+          ...current,
+          busy: false,
+          sources: [source, ...current.sources.filter((item) => item.id !== source.id)],
+          activeSourceId: source.id,
+          mode: 'editor',
+        }));
+        return true;
+      } catch (error) {
+        setSnapshot((current) => ({
+          ...current,
+          busy: false,
+          error: localizedError(error, locale),
+        }));
+        return false;
+      }
+    },
+    [locale],
+  );
 
   const editSource = useCallback(
     async (sourceId: string, targetLanguage: TranscriptTargetLanguage) => {
@@ -118,18 +147,25 @@ export function useStudio() {
         }));
         return true;
       } catch (error) {
-        setSnapshot((current) => ({ ...current, busy: false, error: messageOf(error) }));
+        setSnapshot((current) => ({
+          ...current,
+          busy: false,
+          error: localizedError(error, locale),
+        }));
         return false;
       }
     },
-    [],
+    [locale],
   );
 
   const run = useCallback(
     async (agentIds?: string[]) => {
       const sourceIds = snapshot.activeSourceId ? [snapshot.activeSourceId] : [];
       if (sourceIds.length === 0) {
-        setSnapshot((current) => ({ ...current, error: 'Hãy chọn một nguồn trước.' }));
+        setSnapshot((current) => ({
+          ...current,
+          error: locale === 'vi' ? 'Hãy chọn một nguồn trước.' : 'Select a source first.',
+        }));
         return;
       }
       setSnapshot((current) => ({ ...current, busy: true, error: null }));
@@ -189,10 +225,14 @@ export function useStudio() {
           }
         }
       } catch (error) {
-        setSnapshot((current) => ({ ...current, busy: false, error: messageOf(error) }));
+        setSnapshot((current) => ({
+          ...current,
+          busy: false,
+          error: localizedError(error, locale),
+        }));
       }
     },
-    [snapshot.activeSourceId, snapshot.meta?.debateAgents, snapshot.mode, snapshot.query],
+    [locale, snapshot.activeSourceId, snapshot.meta?.debateAgents, snapshot.mode, snapshot.query],
   );
 
   const grade = useCallback(
@@ -203,10 +243,14 @@ export function useStudio() {
         const quizGrade = await studioApi.gradeQuiz(snapshot.quiz.id, answers);
         setSnapshot((current) => ({ ...current, quizGrade, busy: false }));
       } catch (error) {
-        setSnapshot((current) => ({ ...current, busy: false, error: messageOf(error) }));
+        setSnapshot((current) => ({
+          ...current,
+          busy: false,
+          error: localizedError(error, locale),
+        }));
       }
     },
-    [snapshot.quiz],
+    [locale, snapshot.quiz],
   );
 
   const clearError = useCallback(() => {
@@ -226,8 +270,4 @@ export function useStudio() {
     grade,
     clearError,
   };
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : 'Có lỗi không xác định.';
 }

@@ -1,13 +1,15 @@
 # Changelog
 
-All notable changes will be documented here. The project follows [Semantic Versioning](https://semver.org/) after the first public release.
+All notable changes will be documented here. The project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-08-11
 
 ### Added
 
 - provider-neutral Knowledge Studio domain engine;
-- deterministic local model and original Vietnamese fixture;
+- deterministic local model and original bilingual Vietnamese-English fixture;
 - cited answers, timestamped clips, mind maps, quizzes, study guides, and Agora debates;
 - Express API and responsive React/Tailwind demo;
 - optional OpenAI Responses adapter with schema validation and cost reservations;
@@ -15,6 +17,7 @@ All notable changes will be documented here. The project follows [Semantic Versi
 - explicit transcript editing with re-indexing and suspicious-length warnings;
 - single-file OpenAI speech rendering with sentence-aware splitting, WAV validation, and character budgets;
 - Paper & Ink React interface with light/dark themes and eight focused tools;
+- complete Vietnamese-English interface with browser-language detection, persisted choice, localized errors, and query-language model output;
 - tests, deterministic eval, security/provenance documentation, and public-project CI files.
 
 ### Security
@@ -25,4 +28,5 @@ All notable changes will be documented here. The project follows [Semantic Versi
 - ordinary source URLs remain metadata; the dedicated YouTube route is restricted to canonical video IDs and fixed provider endpoints;
 - expensive media operations have a separate rate limit, server-only keys, and no playlist or bulk-download route.
 
-[Unreleased]: https://github.com/nguyenduyhung1989/360GNH/commits/main
+[Unreleased]: https://github.com/nguyenduyhung1989/360GNH/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/nguyenduyhung1989/360GNH/releases/tag/v0.1.0

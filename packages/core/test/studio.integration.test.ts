@@ -63,6 +63,33 @@ describe('KnowledgeStudio vertical slice', () => {
     expect(result.usage.every((usage) => usage.estimatedCostUsd === 0)).toBe(true);
   });
 
+  it('keeps local answers and generated learning tools in the English query language', async () => {
+    const studio = makeStudio();
+    const source = await studio.ingest(DEMO_SOURCE);
+    const input = {
+      query: 'How do active recall and spaced practice work together?',
+      sourceIds: [source.id],
+    };
+
+    const [answer, quiz, guide, debate] = await Promise.all([
+      studio.answer(input),
+      studio.generateQuiz({ ...input, count: 2 }),
+      studio.generateStudyGuide(input),
+      studio.debate({
+        ...input,
+        agents: DEFAULT_AGENTS.slice(0, 2),
+        collisionRounds: 1,
+      }),
+    ]);
+
+    expect(answer.answer).toMatch(/^From the loaded source/);
+    expect(quiz.title).toMatch(/^Quiz:/);
+    expect(quiz.questions[0]?.question).toMatch(/^Which statement/);
+    expect(guide.title).toMatch(/^Study guide:/);
+    expect(debate.messages[0]?.content).toMatch(/source actually demonstrates|In practice/);
+    expect(debate.summary.commonGround[0]).toMatch(/^Conclusions must/);
+  });
+
   it('rejects URL credentials and empty source selections', async () => {
     const studio = makeStudio();
     await expect(

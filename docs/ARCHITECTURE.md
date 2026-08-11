@@ -50,7 +50,7 @@ The core speech port returns WAV bytes for one bounded text chunk. `AudiobookRen
 
 ## Retrieval
 
-The first public release uses BM25 over normalized Vietnamese-friendly tokens. This choice keeps the demo inspectable and avoids an embedding service or hidden index. The repository port allows a later hybrid or vector adapter without changing learning-capability interfaces.
+The first public release uses BM25 over normalized Unicode-friendly tokens. This choice keeps the bilingual demo inspectable and avoids an embedding service or hidden index. The repository port allows a later hybrid or vector adapter without changing learning-capability interfaces.
 
 Timestamped transcript chunks preserve the earliest and latest segment boundaries. Citations can therefore become time links for supported video hosts without guessing from generated prose.
 

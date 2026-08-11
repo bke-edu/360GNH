@@ -1,15 +1,15 @@
 # 360GNH Knowledge Studio
 
+**Languages:** English · [Tiếng Việt](README.vi.md)
+
 > Import one YouTube video, preserve its raw transcript, edit it into a reusable source, then turn that source into cited learning tools or one audiobook file.
 
 [![CI](https://github.com/nguyenduyhung1989/360GNH/actions/workflows/ci.yml/badge.svg)](https://github.com/nguyenduyhung1989/360GNH/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-f7c928.svg)](LICENSE)
 
-360GNH is a provider-neutral TypeScript engine and local-first web demo extracted from the strongest reusable ideas in a privately maintained knowledge platform. It works without an API key by default, then lets maintainers opt into the OpenAI Responses API behind an explicit cost ceiling.
+360GNH is a provider-neutral TypeScript engine and local-first web demo extracted from the strongest reusable ideas in a privately maintained knowledge platform. The complete interface is available in English and Vietnamese, remembers the reader's choice, and follows the browser language on first use. It works without an API key by default, then lets maintainers opt into the OpenAI Responses API behind an explicit cost ceiling.
 
 ![Knowledge Studio desktop interface](docs/assets/knowledge-studio-desktop.png)
-
-[Đọc bằng tiếng Việt](README.vi.md)
 
 ## Why this exists
 
@@ -29,7 +29,7 @@ The deterministic local model makes the full vertical slice inspectable and test
 
 ## Status
 
-`0.1.0` is a pre-release extraction candidate. The demo is intentionally in-memory and single-process: restarting the API removes sources and quizzes. It is suitable for local evaluation and contribution, not yet for public multi-user hosting.
+`0.1.0` is an early public release. The demo is intentionally in-memory and single-process: restarting the API removes sources and quizzes. It is suitable for local evaluation and contribution, not yet for public multi-user hosting.
 
 ## Quick start
 
@@ -40,7 +40,7 @@ npm ci
 npm run dev
 ```
 
-Open <http://127.0.0.1:4311>. The API starts at <http://127.0.0.1:4310> and seeds an original Vietnamese learning-science fixture on first load.
+Open <http://127.0.0.1:4311>. The API starts at <http://127.0.0.1:4310> and seeds an original bilingual learning-science fixture on first load. Use the **VI / EN** control in the header to switch the entire interface; local model outputs follow the query language.
 
 Useful commands:
 
@@ -80,7 +80,7 @@ AUDIOBOOK_MAX_CHARS=20000
 AUDIOBOOK_SESSION_CHAR_BUDGET=100000
 ```
 
-The flow is deliberately explicit: import one video → inspect the raw transcript → press **Biên tập bằng AI** → reuse the clean source → render one WAV file. There is no playlist or bulk-download endpoint. Speech is AI-generated and must be disclosed to listeners.
+The flow is deliberately explicit: import one video → inspect the raw transcript → press **Edit with AI** → reuse the clean source → render one WAV file. There is no playlist or bulk-download endpoint. Speech is AI-generated and must be disclosed to listeners.
 
 ## Architecture
 
@@ -113,6 +113,12 @@ Not included:
 
 The extraction record is in [Provenance](docs/PROVENANCE.md).
 
+## Legal boundary
+
+The MIT license covers original 360GNH project code and documentation, not material that users import. Public availability does not automatically grant permission to republish a video transcript, translation, or audiobook. Operators must have a lawful basis for processing content and must comply with the current terms of the providers they enable.
+
+See [Legal and responsible-use notes](docs/LEGAL.md), [Provenance](docs/PROVENANCE.md), and [Third-party notices](THIRD_PARTY_NOTICES.md). A compiled web distribution must include the bundled font, icon, and React notices under `docs/licenses/`.
+
 ## Security and privacy
 
 - The API binds to loopback by default and refuses a non-loopback bind without `API_TOKEN`.
@@ -132,4 +138,4 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md), then check the [roadmap](docs/ROA
 
 ## License
 
-MIT © Nguyễn Duy Hưng. See [LICENSE](LICENSE).
+MIT © Nguyễn Duy Hưng. See [LICENSE](LICENSE). Dependencies and embedded assets retain the licenses listed in [Third-party notices](THIRD_PARTY_NOTICES.md).

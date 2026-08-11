@@ -44,7 +44,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const body = (await response.json().catch(() => ({}))) as Envelope<T> & ErrorEnvelope;
   if (!response.ok) {
     throw new ApiError(
-      body.error?.message ?? `Yêu cầu thất bại (${response.status})`,
+      body.error?.message ?? `Request failed (${response.status})`,
       response.status,
       body.error?.code,
     );
@@ -64,7 +64,7 @@ async function requestBlob(path: string, init: RequestInit): Promise<Blob> {
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ErrorEnvelope;
     throw new ApiError(
-      body.error?.message ?? `Yêu cầu thất bại (${response.status})`,
+      body.error?.message ?? `Request failed (${response.status})`,
       response.status,
       body.error?.code,
     );

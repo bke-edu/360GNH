@@ -4,7 +4,7 @@
 
 360GNH Knowledge Studio is a clean, standalone implementation of reusable knowledge-workflow ideas developed while maintaining a private knowledge platform. The public repository starts with a new history and a provider-neutral architecture; it is not a mirror of the private monorepo.
 
-Nguyễn Duy Hưng is the primary maintainer of this extraction candidate. Before the first public release, the maintainer must confirm that every included line and asset may be offered under MIT. Contributors must submit only material they have the right to license.
+Nguyễn Duy Hưng is the primary maintainer. This public release is made on the maintainer's representation that the included project code, documentation, fixture, and screenshot are original or cleared for publication under MIT. Third-party dependencies retain their own licenses, and contributors must submit only material they have the right to license.
 
 ## Included
 
@@ -28,7 +28,9 @@ Nguyễn Duy Hưng is the primary maintainer of this extraction candidate. Befor
 
 ## Public fixtures
 
-`DEMO_SOURCE` is original synthetic Vietnamese text written for this repository. It does not claim to quote or summarize a particular video or publication. Tests may attach an example URL solely to verify timestamp-link construction; the default demo does not present that URL as a real source.
+`DEMO_SOURCE` is original synthetic bilingual Vietnamese-English text written for this repository. It does not claim to quote or summarize a particular video or publication. Tests may attach an example URL solely to verify timestamp-link construction; the default demo does not present that URL as a real source.
+
+`docs/assets/knowledge-studio-desktop.png` is an original screenshot of this repository running with the synthetic fixture. It contains no customer, tenant, or production data.
 
 ## Release review
 
