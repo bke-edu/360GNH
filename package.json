@@ -25,7 +25,7 @@
   ],
   "scripts": {
     "build": "npm run build -w @360gnh/core && npm run build -w @360gnh/api && npm run build -w @360gnh/web",
-    "check": "npm run format:check && npm run lint && npm run test && npm run build",
+    "check": "npm run format:check && npm run build && npm run lint && npm run test",
     "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev -w @360gnh/api\" \"npm run dev -w @360gnh/web\"",
     "eval": "npm run eval -w @360gnh/core",
     "format": "prettier --write .",
