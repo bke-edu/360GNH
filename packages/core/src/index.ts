@@ -1,5 +1,6 @@
 export * from './agora/personas.js';
 export * from './agora/types.js';
+export * from './audiobook.js';
 export * from './budget.js';
 export * from './chunking.js';
 export * from './citations.js';
@@ -15,4 +16,6 @@ export * from './retrieval.js';
 export * from './security.js';
 export * from './studio.js';
 export * from './tokenize.js';
+export * from './transcript-editing.js';
 export * from './types.js';
+export * from './youtube.js';

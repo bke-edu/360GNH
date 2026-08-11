@@ -21,17 +21,17 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
   return (
     <form onSubmit={submit}>
       <div className="mb-6">
-        <span className="mb-1 block text-xs tracking-[0.14em] text-amber-300 uppercase">
+        <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
           Bài kiểm tra
         </span>
-        <h2 className="mb-0 font-display text-3xl font-medium tracking-tight">{quiz.title}</h2>
+        <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">{quiz.title}</h2>
       </div>
       {quiz.questions.map((question, index) => {
         const result = grade?.details.find((detail) => detail.questionId === question.id);
         return (
           <fieldset className="mb-8 border-0 p-0" key={question.id}>
-            <legend className="mb-4 grid grid-cols-[2rem_minmax(0,1fr)] gap-3 font-display text-xl leading-relaxed">
-              <span className="font-mono text-sm text-amber-300">
+            <legend className="mb-4 grid grid-cols-[2rem_minmax(0,1fr)] gap-3 font-display text-xl leading-relaxed font-semibold">
+              <span className="font-mono text-sm text-accent">
                 {String(index + 1).padStart(2, '0')}
               </span>
               {question.question}
@@ -40,7 +40,7 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
               <div className="mb-3 grid gap-2">
                 {question.options.map((option) => (
                   <label
-                    className="flex min-h-13 cursor-pointer items-center gap-3 rounded-sm border border-studio-700 p-3 text-linen-400 transition hover:border-amber-300 hover:bg-amber-300/10 has-checked:border-amber-300 has-checked:bg-amber-300/10 has-checked:text-linen-100"
+                    className="flex min-h-13 cursor-pointer items-center gap-3 border border-line-strong p-3 font-body text-ink-soft transition duration-150 hover:border-accent hover:bg-accent-soft has-checked:border-accent has-checked:bg-accent-soft has-checked:text-ink"
                     key={option}
                   >
                     <input
@@ -49,7 +49,7 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
                       onChange={() =>
                         setAnswers((current) => ({ ...current, [question.id]: option }))
                       }
-                      className="size-4 min-h-0 accent-amber-300"
+                      className="size-4 min-h-0 accent-accent"
                       type="radio"
                       value={option}
                     />
@@ -61,7 +61,7 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
               <div className="mb-3 grid gap-2 md:grid-cols-2">
                 {['true', 'false'].map((option) => (
                   <label
-                    className="flex min-h-13 cursor-pointer items-center gap-3 rounded-sm border border-studio-700 p-3 text-linen-400 transition hover:border-amber-300 hover:bg-amber-300/10 has-checked:border-amber-300 has-checked:bg-amber-300/10 has-checked:text-linen-100"
+                    className="flex min-h-13 cursor-pointer items-center gap-3 border border-line-strong p-3 font-body text-ink-soft transition duration-150 hover:border-accent hover:bg-accent-soft has-checked:border-accent has-checked:bg-accent-soft has-checked:text-ink"
                     key={option}
                   >
                     <input
@@ -70,7 +70,7 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
                       onChange={() =>
                         setAnswers((current) => ({ ...current, [question.id]: option }))
                       }
-                      className="size-4 min-h-0 accent-amber-300"
+                      className="size-4 min-h-0 accent-accent"
                       type="radio"
                       value={option}
                     />
@@ -81,7 +81,7 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
             ) : (
               <textarea
                 aria-label={`Câu trả lời cho câu ${index + 1}`}
-                className="w-full rounded-sm border border-studio-700 bg-studio-950/70 p-3 text-base leading-relaxed text-linen-100 outline-amber-300 focus:border-amber-300"
+                className="w-full border border-line-strong bg-paper p-3 font-body text-base leading-relaxed text-ink outline-accent focus:border-accent"
                 onChange={(event) =>
                   setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
                 }
@@ -89,12 +89,12 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
                 value={answers[question.id] ?? ''}
               />
             )}
-            <blockquote className="my-3 border-l-2 border-studio-500 px-4 py-3 text-xs leading-relaxed text-linen-500 italic">
+            <blockquote className="my-3 border-y border-line-strong px-4 py-3 font-body text-xs leading-relaxed text-ink-faint italic">
               {question.sourceExcerpt}
             </blockquote>
             {result ? (
               <div
-                className={`mt-3 flex items-start gap-2 rounded-sm border p-3 text-sm ${result.isCorrect === false ? 'border-danger-400 bg-danger-400/10 text-danger-200' : 'border-mint-300 bg-mint-300/10 text-mint-300'}`}
+                className={`mt-3 flex items-start gap-2 border p-3 text-sm ${result.isCorrect === false ? 'border-danger bg-danger-soft text-danger' : 'border-success bg-success-soft text-success'}`}
               >
                 {result.isCorrect === null ? (
                   <CircleHelp aria-hidden="true" size={18} />
@@ -109,10 +109,10 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
           </fieldset>
         );
       })}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-studio-700 pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t-4 border-double border-line-strong pt-5">
         {grade ? (
-          <p className="m-0 text-sm text-linen-500">
-            <strong className="text-xl text-amber-300">
+          <p className="m-0 text-sm text-ink-faint">
+            <strong className="font-display text-xl text-accent">
               {grade.score}/{grade.autoGradable}
             </strong>{' '}
             câu tự chấm đúng
@@ -121,12 +121,12 @@ export function QuizPanel({ quiz, grade, busy, onGrade }: QuizPanelProps) {
               : ''}
           </p>
         ) : (
-          <p className="m-0 text-sm text-linen-500">
+          <p className="m-0 text-sm text-ink-faint">
             Đáp án được giữ ở máy chủ; trình duyệt không thể sửa đúng sai.
           </p>
         )}
         <button
-          className="inline-flex min-h-11 items-center justify-center rounded-sm border border-amber-300 bg-amber-300 px-4 text-sm font-bold text-studio-950 transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 items-center justify-center border border-accent bg-accent px-4 text-sm font-bold text-accent-contrast shadow-[2px_2px_0_var(--color-ink)] transition duration-150 hover:-translate-x-px hover:-translate-y-px hover:bg-accent-hover hover:shadow-[3px_3px_0_var(--color-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
           disabled={busy}
           type="submit"
         >

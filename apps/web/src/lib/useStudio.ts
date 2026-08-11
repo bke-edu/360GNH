@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { studioApi } from './api.js';
 import type { StudioMode, StudioSnapshot } from './types.js';
+import type { TranscriptTargetLanguage } from './api.js';
 
 const INITIAL_QUERY = 'Nhớ chủ động và ôn cách quãng phối hợp ra sao?';
 
@@ -75,6 +76,44 @@ export function useStudio() {
           ...current,
           busy: false,
           sources: [source, ...current.sources],
+          activeSourceId: source.id,
+        }));
+        return true;
+      } catch (error) {
+        setSnapshot((current) => ({ ...current, busy: false, error: messageOf(error) }));
+        return false;
+      }
+    },
+    [],
+  );
+
+  const importYouTube = useCallback(async (input: { url: string; language?: 'vi' | 'en' }) => {
+    setSnapshot((current) => ({ ...current, busy: true, error: null }));
+    try {
+      const source = await studioApi.importYouTube(input);
+      setSnapshot((current) => ({
+        ...current,
+        busy: false,
+        sources: [source, ...current.sources.filter((item) => item.id !== source.id)],
+        activeSourceId: source.id,
+        mode: 'editor',
+      }));
+      return true;
+    } catch (error) {
+      setSnapshot((current) => ({ ...current, busy: false, error: messageOf(error) }));
+      return false;
+    }
+  }, []);
+
+  const editSource = useCallback(
+    async (sourceId: string, targetLanguage: TranscriptTargetLanguage) => {
+      setSnapshot((current) => ({ ...current, busy: true, error: null }));
+      try {
+        const source = await studioApi.editSource(sourceId, targetLanguage);
+        setSnapshot((current) => ({
+          ...current,
+          busy: false,
+          sources: current.sources.map((item) => (item.id === source.id ? source : item)),
           activeSourceId: source.id,
         }));
         return true;
@@ -181,6 +220,8 @@ export function useStudio() {
     setQuery,
     selectSource,
     addSource,
+    importYouTube,
+    editSource,
     run,
     grade,
     clearError,

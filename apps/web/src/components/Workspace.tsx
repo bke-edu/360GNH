@@ -9,25 +9,30 @@ import {
   Play,
 } from 'lucide-react';
 import type { FormEvent } from 'react';
-import type { StudioSnapshot } from '../lib/types.js';
+import type { TranscriptTargetLanguage } from '../lib/api.js';
+import type { KnowledgeSource, StudioSnapshot } from '../lib/types.js';
+import { AudiobookPanel } from './AudiobookPanel.js';
 import { DebatePanel } from './DebatePanel.js';
+import { EditorPanel } from './EditorPanel.js';
 import { MindmapTree } from './MindmapTree.js';
 import { QuizPanel } from './QuizPanel.js';
 
 interface WorkspaceProps {
   snapshot: StudioSnapshot;
-  activeSourceTitle: string | null;
+  activeSource: KnowledgeSource | null;
   onQueryChange: (query: string) => void;
   onRun: (agentIds?: string[]) => Promise<void>;
   onGrade: (answers: Record<string, string>) => Promise<void>;
+  onEdit: (sourceId: string, targetLanguage: TranscriptTargetLanguage) => Promise<boolean>;
 }
 
 export function Workspace({
   snapshot,
-  activeSourceTitle,
+  activeSource,
   onQueryChange,
   onRun,
   onGrade,
+  onEdit,
 }: WorkspaceProps) {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -35,19 +40,22 @@ export function Workspace({
   };
 
   return (
-    <section className="flex-1 px-4 pt-5 pb-8 md:px-8 2xl:px-10" aria-label="Bàn làm việc tri thức">
-      <header className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <div>
-          <span className="mb-1 block text-xs tracking-[0.14em] text-amber-300 uppercase">
+    <section
+      className="min-w-0 flex-1 px-4 pt-6 pb-10 md:px-6 xl:px-8"
+      aria-label="Bàn làm việc tri thức"
+    >
+      <header className="mb-6 grid min-w-0 gap-5 border-b-4 border-double border-line-strong pb-7 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+        <div className="min-w-0">
+          <span className="mb-3 block text-xs font-semibold tracking-[0.2em] text-accent uppercase">
             Đang làm việc với
           </span>
-          <h1 className="mb-0 max-w-4xl font-display text-4xl leading-none font-medium tracking-[-0.035em] md:text-5xl">
-            {activeSourceTitle ?? 'Chưa có nguồn'}
+          <h1 className="mb-0 max-w-4xl break-words font-display text-[clamp(2.35rem,1.7rem+2.6vw,4.6rem)] leading-[0.95] font-semibold tracking-[-0.045em]">
+            {activeSource?.title ?? 'Chưa có nguồn'}
           </h1>
         </div>
-        <div className="flex w-fit items-center gap-2 rounded-full border border-studio-700 px-3 py-2 font-mono text-xs text-linen-500">
+        <div className="flex w-fit items-center gap-2 border border-line-strong bg-paper-raised px-3 py-2 font-mono text-xs text-ink-faint shadow-[2px_2px_0_var(--color-line)]">
           <span
-            className={`size-2 rounded-full ${snapshot.meta?.provider === 'local' ? 'bg-mint-300 shadow-[0_0_0.75rem_var(--color-mint-300)]' : 'bg-amber-300 shadow-[0_0_0.75rem_var(--color-amber-300)]'}`}
+            className={`size-2 rounded-full ${snapshot.meta?.provider === 'local' ? 'bg-success' : 'bg-accent'}`}
           />
           {snapshot.meta
             ? `${snapshot.meta.provider} · ${snapshot.meta.model}`
@@ -55,39 +63,48 @@ export function Workspace({
         </div>
       </header>
 
-      <form className="mb-6" onSubmit={submit}>
-        <label className="mb-2 block text-xs text-linen-500" htmlFor="studio-query">
-          Câu hỏi hoặc chủ đề
-        </label>
-        <div className="relative">
-          <textarea
-            className="min-h-21 w-full rounded-lg border border-studio-500 bg-studio-850 p-3 pr-17 text-base leading-relaxed text-linen-100 outline-amber-300 transition focus:border-amber-300"
-            id="studio-query"
-            maxLength={2_000}
-            onChange={(event) => onQueryChange(event.target.value)}
-            rows={2}
-            value={snapshot.query}
-          />
-          <button
-            aria-label="Chạy công cụ đang chọn"
-            className="absolute right-3 bottom-3 grid size-11 place-items-center rounded-full bg-amber-300 text-studio-950 transition hover:translate-x-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:grayscale disabled:opacity-50"
-            disabled={snapshot.busy || !snapshot.activeSourceId || snapshot.mode === 'agora'}
-            type="submit"
+      {snapshot.mode !== 'editor' && snapshot.mode !== 'audiobook' ? (
+        <form className="mb-6 min-w-0" onSubmit={submit}>
+          <label
+            className="mb-2 block text-xs font-semibold tracking-[0.08em] text-ink-faint uppercase"
+            htmlFor="studio-query"
           >
-            {snapshot.busy ? (
-              <LoaderCircle aria-hidden="true" className="animate-spin" size={20} />
-            ) : (
-              <ArrowRight aria-hidden="true" size={20} />
-            )}
-          </button>
-        </div>
-      </form>
+            Câu hỏi hoặc chủ đề
+          </label>
+          <div className="relative min-w-0">
+            <textarea
+              className="min-h-24 w-full min-w-0 border border-line-strong bg-paper-raised p-4 pr-17 font-body text-[1.08rem] leading-relaxed text-ink shadow-[2px_2px_0_var(--color-line)] outline-accent transition placeholder:text-ink-faint focus:border-accent"
+              id="studio-query"
+              maxLength={2_000}
+              onChange={(event) => onQueryChange(event.target.value)}
+              rows={2}
+              value={snapshot.query}
+            />
+            <button
+              aria-label="Chạy công cụ đang chọn"
+              className="absolute right-3 bottom-3 grid size-11 place-items-center border border-accent bg-accent text-accent-contrast shadow-[2px_2px_0_var(--color-ink)] transition duration-150 hover:-translate-x-px hover:-translate-y-px hover:bg-accent-hover hover:shadow-[3px_3px_0_var(--color-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:grayscale disabled:opacity-50"
+              disabled={snapshot.busy || !snapshot.activeSourceId || snapshot.mode === 'agora'}
+              type="submit"
+            >
+              {snapshot.busy ? (
+                <LoaderCircle aria-hidden="true" className="animate-spin" size={20} />
+              ) : (
+                <ArrowRight aria-hidden="true" size={20} />
+              )}
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       <div
-        className="min-h-88 rounded-xl border border-studio-700 bg-linear-to-br from-studio-800/80 to-studio-900/80 p-4 shadow-studio md:p-8"
+        className="min-h-88 min-w-0 border border-line-strong bg-paper-raised p-4 shadow-paper md:p-8"
         role="tabpanel"
       >
-        {snapshot.busy ? <LoadingState /> : renderResult(snapshot, onRun, onGrade)}
+        {snapshot.busy ? (
+          <LoadingState />
+        ) : (
+          renderResult(snapshot, activeSource, onEdit, onRun, onGrade)
+        )}
       </div>
     </section>
   );
@@ -95,23 +112,36 @@ export function Workspace({
 
 function renderResult(
   snapshot: StudioSnapshot,
+  activeSource: KnowledgeSource | null,
+  onEdit: (sourceId: string, targetLanguage: TranscriptTargetLanguage) => Promise<boolean>,
   onRun: (agentIds?: string[]) => Promise<void>,
   onGrade: (answers: Record<string, string>) => Promise<void>,
 ) {
   switch (snapshot.mode) {
+    case 'editor':
+      return (
+        <EditorPanel
+          busy={snapshot.busy}
+          key={activeSource?.id ?? 'no-source'}
+          onEdit={onEdit}
+          source={activeSource}
+        />
+      );
     case 'chat':
       return snapshot.answer ? (
         <article>
           <div className="mb-6">
-            <span className="mb-1 block text-xs tracking-[0.14em] text-amber-300 uppercase">
+            <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
               Trả lời có căn cứ
             </span>
-            <h2 className="mb-0 font-display text-3xl font-medium tracking-tight">
+            <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">
               Không biết thì nói không biết
             </h2>
           </div>
-          <p className="font-display text-xl leading-loose">{snapshot.answer.answer}</p>
-          <footer className="flex items-center gap-2 border-t border-studio-700 pt-4 font-mono text-xs text-linen-500">
+          <p className="max-w-[68ch] font-body text-[clamp(1.08rem,1.02rem+0.28vw,1.24rem)] leading-[1.8] text-ink-soft">
+            {snapshot.answer.answer}
+          </p>
+          <footer className="flex items-center gap-2 border-t border-line pt-4 font-mono text-xs text-ink-faint">
             <Bot aria-hidden="true" size={15} />
             {snapshot.answer.usage.provider}/{snapshot.answer.usage.model} ·{' '}
             {snapshot.answer.citations.length} đoạn nguồn
@@ -127,10 +157,10 @@ function renderResult(
       return snapshot.mindmap ? (
         <div className="overflow-hidden">
           <div className="mb-6">
-            <span className="mb-1 block text-xs tracking-[0.14em] text-amber-300 uppercase">
+            <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
               Cấu trúc ý
             </span>
-            <h2 className="mb-0 font-display text-3xl font-medium tracking-tight">
+            <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">
               Bản đồ có dấu vết nguồn
             </h2>
           </div>
@@ -161,22 +191,22 @@ function renderResult(
       return snapshot.guide ? (
         <article>
           <div className="mb-6">
-            <span className="mb-1 block text-xs tracking-[0.14em] text-amber-300 uppercase">
+            <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
               Lộ trình đọc
             </span>
-            <h2 className="mb-0 font-display text-3xl font-medium tracking-tight">
+            <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">
               {snapshot.guide.title}
             </h2>
           </div>
-          <p className="font-display text-xl leading-relaxed text-linen-400">
+          <p className="max-w-[68ch] border-l-2 border-accent pl-5 font-body text-xl leading-relaxed text-ink-soft">
             {snapshot.guide.overview}
           </p>
-          <ol className="grid gap-6 pl-5 marker:font-display marker:text-amber-300">
+          <ol className="grid gap-6 pl-5 marker:font-display marker:text-accent">
             {snapshot.guide.sections.map((section) => (
               <li key={section.heading}>
-                <h3 className="mb-2 font-display text-xl font-medium">{section.heading}</h3>
-                <p className="leading-loose text-linen-400">{section.explanation}</p>
-                <blockquote className="my-3 border-l-2 border-studio-500 px-4 py-3 text-xs leading-relaxed text-linen-500 italic">
+                <h3 className="mb-2 font-display text-xl font-semibold">{section.heading}</h3>
+                <p className="font-body leading-loose text-ink-soft">{section.explanation}</p>
+                <blockquote className="my-3 border-y border-line-strong px-4 py-3 font-body text-xs leading-relaxed text-ink-faint italic">
                   {section.sourceExcerpt}
                 </blockquote>
               </li>
@@ -193,25 +223,25 @@ function renderResult(
       return snapshot.clips.length > 0 ? (
         <div className="grid gap-3">
           <div className="mb-6">
-            <span className="mb-1 block text-xs tracking-[0.14em] text-amber-300 uppercase">
+            <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
               Mốc đáng xem
             </span>
-            <h2 className="mb-0 font-display text-3xl font-medium tracking-tight">
+            <h2 className="mb-0 font-display text-3xl font-semibold tracking-tight">
               Đoạn thông minh: {snapshot.query}
             </h2>
           </div>
           {snapshot.clips.map((clip) => (
             <article
-              className="grid gap-3 border-t border-studio-700 py-4 md:grid-cols-[7rem_minmax(0,1fr)_auto] md:items-center"
+              className="grid gap-3 border-t border-line py-4 md:grid-cols-[7rem_minmax(0,1fr)_auto] md:items-center"
               key={clip.id}
             >
-              <span className="font-mono text-xs text-amber-300">
+              <span className="font-mono text-xs text-accent">
                 {formatTime(clip.startSeconds)}—{formatTime(clip.endSeconds)}
               </span>
-              <p className="m-0 leading-relaxed text-linen-400">{clip.text}</p>
+              <p className="m-0 font-body leading-relaxed text-ink-soft">{clip.text}</p>
               {clip.deepLink ? (
                 <a
-                  className="inline-flex w-fit items-center gap-1 text-sm text-mint-300 no-underline"
+                  className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-accent no-underline hover:text-accent-hover"
                   href={clip.deepLink}
                   rel="noreferrer"
                   target="_blank"
@@ -226,6 +256,14 @@ function renderResult(
         <EmptyResult
           icon={Clapperboard}
           text="Tìm chủ đề trong bản ghi và nhảy về đúng khoảng thời gian của nguồn."
+        />
+      );
+    case 'audiobook':
+      return (
+        <AudiobookPanel
+          key={activeSource?.id ?? 'no-source'}
+          meta={snapshot.meta}
+          source={activeSource}
         />
       );
     case 'agora':
@@ -243,9 +281,9 @@ function renderResult(
 
 function EmptyResult({ icon: Icon, text }: { icon: typeof Map; text: string }) {
   return (
-    <div className="grid min-h-64 place-content-center justify-items-center p-6 text-center text-linen-500">
-      <Icon className="mb-3 text-amber-300" aria-hidden="true" size={30} />
-      <p className="mb-2 max-w-xl leading-relaxed text-linen-400">{text}</p>
+    <div className="grid min-h-64 place-content-center justify-items-center p-6 text-center text-ink-faint">
+      <Icon className="mb-3 text-accent" aria-hidden="true" size={30} />
+      <p className="mb-2 max-w-xl font-body text-lg leading-relaxed text-ink-soft">{text}</p>
       <small className="text-xs">Nhập chủ đề phía trên rồi bấm mũi tên.</small>
     </div>
   );
@@ -254,11 +292,13 @@ function EmptyResult({ icon: Icon, text }: { icon: typeof Map; text: string }) {
 function LoadingState() {
   return (
     <div
-      className="grid min-h-64 place-content-center justify-items-center p-6 text-center text-linen-500"
+      className="grid min-h-64 place-content-center justify-items-center p-6 text-center text-ink-faint"
       aria-live="polite"
     >
-      <LoaderCircle aria-hidden="true" className="mb-3 animate-spin text-amber-300" size={28} />
-      <p className="max-w-xl leading-relaxed text-linen-400">Đang lục nguồn và ráp kết quả…</p>
+      <LoaderCircle aria-hidden="true" className="mb-3 animate-spin text-accent" size={28} />
+      <p className="max-w-xl font-body text-lg leading-relaxed text-ink-soft">
+        Đang lục nguồn và ráp kết quả…
+      </p>
     </div>
   );
 }

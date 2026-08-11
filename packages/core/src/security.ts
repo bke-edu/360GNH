@@ -42,6 +42,20 @@ export function wrapUntrustedContext(chunks: ReadonlyArray<{ id: string; text: s
     .join('\n\n');
 }
 
+export function wrapUntrustedTranscript(input: {
+  title: string;
+  sourceUrl?: string;
+  text: string;
+}): string {
+  return [
+    '<source kind="transcript">',
+    `<title>${escapeXml(input.title)}</title>`,
+    `<url>${escapeXml(input.sourceUrl ?? '')}</url>`,
+    `<content>${escapeXml(input.text)}</content>`,
+    '</source>',
+  ].join('\n');
+}
+
 function escapeXml(value: string): string {
   return value.replace(/[&"<>]/g, (character) => {
     const entities: Record<string, string> = {

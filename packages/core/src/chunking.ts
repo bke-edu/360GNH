@@ -15,14 +15,16 @@ export function chunkSource(
   source: KnowledgeSource,
   options: ChunkingOptions = {},
 ): KnowledgeChunk[] {
-  const hasSegments = Boolean(source.segments && source.segments.length > 0);
+  // Once a transcript has an edited copy, index that clean document instead
+  // of silently continuing to index the raw timestamp segments.
+  const hasSegments = Boolean(!source.editedText && source.segments && source.segments.length > 0);
   const target =
     options.targetCharacters ?? (hasSegments ? DEFAULT_SEGMENT_TARGET : DEFAULT_TARGET);
   const overlap =
     options.overlapCharacters ?? (hasSegments ? DEFAULT_SEGMENT_OVERLAP : DEFAULT_OVERLAP);
   assertChunkingOptions(target, overlap);
 
-  if (source.segments && source.segments.length > 0) {
+  if (!source.editedText && source.segments && source.segments.length > 0) {
     return chunkSegments(source, source.segments, target, overlap);
   }
 

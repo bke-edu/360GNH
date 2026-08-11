@@ -11,6 +11,10 @@ const EnvironmentSchema = z.object({
   AI_BUDGET_USD: z.coerce.number().min(0).max(10_000).default(1),
   OPENAI_INPUT_USD_PER_MTOK: z.coerce.number().min(0).optional(),
   OPENAI_OUTPUT_USD_PER_MTOK: z.coerce.number().min(0).optional(),
+  SUPADATA_API_KEY: z.string().optional(),
+  OPENAI_TTS_MODEL: z.string().default('gpt-4o-mini-tts'),
+  AUDIOBOOK_MAX_CHARS: z.coerce.number().int().min(40).max(250_000).default(20_000),
+  AUDIOBOOK_SESSION_CHAR_BUDGET: z.coerce.number().int().min(40).max(2_000_000).default(100_000),
 });
 
 export interface RuntimeConfig {
@@ -24,6 +28,10 @@ export interface RuntimeConfig {
   aiBudgetUsd: number;
   openaiInputUsdPerMillion?: number;
   openaiOutputUsdPerMillion?: number;
+  supadataApiKey?: string;
+  openaiTtsModel: string;
+  audiobookMaxCharacters: number;
+  audiobookSessionCharacterBudget: number;
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): RuntimeConfig {
@@ -45,6 +53,10 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Runtim
     ...(parsed.OPENAI_OUTPUT_USD_PER_MTOK === undefined
       ? {}
       : { openaiOutputUsdPerMillion: parsed.OPENAI_OUTPUT_USD_PER_MTOK }),
+    ...(parsed.SUPADATA_API_KEY?.trim() ? { supadataApiKey: parsed.SUPADATA_API_KEY.trim() } : {}),
+    openaiTtsModel: parsed.OPENAI_TTS_MODEL,
+    audiobookMaxCharacters: parsed.AUDIOBOOK_MAX_CHARS,
+    audiobookSessionCharacterBudget: parsed.AUDIOBOOK_SESSION_CHAR_BUDGET,
   };
 
   if (!isLoopback(config.host) && !config.apiToken) {
@@ -52,6 +64,9 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Runtim
   }
   if (config.aiProvider === 'openai' && !config.openaiApiKey) {
     throw new Error('OPENAI_API_KEY is required when AI_PROVIDER=openai');
+  }
+  if (config.audiobookSessionCharacterBudget < config.audiobookMaxCharacters) {
+    throw new Error('AUDIOBOOK_SESSION_CHAR_BUDGET must be at least AUDIOBOOK_MAX_CHARS');
   }
   return config;
 }

@@ -39,6 +39,21 @@ export interface StudyGuideDraft {
   reviewQuestions: string[];
 }
 
+export type TranscriptTargetLanguage = 'source' | 'vi' | 'en';
+
+export interface TranscriptEditInput {
+  title: string;
+  sourceUrl?: string;
+  text: string;
+  targetLanguage: TranscriptTargetLanguage;
+  part: number;
+  totalParts: number;
+}
+
+export interface TranscriptEditDraft {
+  editedText: string;
+}
+
 export interface DebateTurnInput {
   topic: string;
   phase: DebatePhase;
@@ -55,6 +70,7 @@ export interface KnowledgeModel {
   generateMindmap(context: ModelContext): Promise<ModelResult<MindmapDraft>>;
   generateQuiz(context: ModelContext, count: number): Promise<ModelResult<QuizDraft>>;
   generateStudyGuide(context: ModelContext): Promise<ModelResult<StudyGuideDraft>>;
+  editTranscript(input: TranscriptEditInput): Promise<ModelResult<TranscriptEditDraft>>;
   debateTurn(
     input: DebateTurnInput,
   ): Promise<ModelResult<{ content: string; citationIndexes: number[] }>>;

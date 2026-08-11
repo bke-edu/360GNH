@@ -9,6 +9,9 @@ The roadmap is ordered by evidence and safety, not by feature count.
 - [x] cited answers, mind maps, quizzes, study guides, clips, and Agora debate;
 - [x] responsive React/Tailwind demo;
 - [x] optional OpenAI Responses adapter with validation and cost reservations;
+- [x] single-video YouTube native-caption import with raw transcript retention;
+- [x] explicit transcript editing with length-ratio evidence and re-indexing;
+- [x] single-file WAV audiobook rendering with safe splitting and character budgets;
 - [x] tests, deterministic eval, threat model, provenance, and contribution docs;
 - [ ] first public GitHub release and release notes;
 - [ ] real outside-user feedback and documented adoption evidence.
@@ -25,9 +28,9 @@ The roadmap is ordered by evidence and safety, not by feature count.
 
 - documented provider adapter kit;
 - optional embedding/vector adapter;
-- pluggable transcript parsers with strict file and URL threat boundaries;
+- additional transcript providers with strict host and input boundaries;
 - reproducible model-routing and cost/quality reports.
 
 ## Deferred without a date
 
-Study Groups is intentionally outside this repository until its separate implementation is stable, ownership-cleared, and reviewed as an independent public boundary. Public multi-user hosting is also deferred until identity, authorization, storage lifecycle, abuse controls, and distributed budgets exist.
+Study Groups is intentionally outside this repository until its separate implementation is stable, ownership-cleared, and reviewed as an independent public boundary. Playlist/bulk media download and batch audiobook production are also deliberately excluded. Public multi-user hosting remains deferred until identity, authorization, storage lifecycle, abuse controls, and distributed budgets exist.

@@ -5,7 +5,7 @@
 This repository contains only the standalone Knowledge Studio engine, API, web demo, tests, evals, and public documentation.
 
 - Do not copy Study Groups into this repository. It is intentionally deferred until separately stabilized and reviewed.
-- Do not add tenant-specific code from the originating private product, customer data, private schemas, production configuration, credentials, downloaders, or audiobook pipelines.
+- Do not add tenant-specific code from the originating private product, customer data, private schemas, production configuration, credentials, playlist/bulk downloaders, or batch audiobook-production pipelines. The public single-video import and single-file speech ports are in scope.
 - Every imported idea must be provider-neutral and documented in `docs/PROVENANCE.md`.
 
 ## Change discipline
@@ -14,7 +14,7 @@ This repository contains only the standalone Knowledge Studio engine, API, web d
 - Keep domain logic in `packages/core`; adapters belong in `apps/api` or another explicit adapter package.
 - Keep the default demo functional without any API key.
 - Preserve the learner-facing quiz boundary: answers must not leave the trusted process before grading.
-- Treat retrieved source text as untrusted model input and preserve the cost-reservation boundary.
+- Treat retrieved source text as untrusted model input and preserve both model-cost and speech-character reservation boundaries.
 
 ## Web interface
 

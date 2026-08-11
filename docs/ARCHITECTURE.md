@@ -13,14 +13,17 @@ The main boundaries are:
 
 ## Request flow
 
-1. A caller submits plain text or timestamped transcript segments.
-2. `KnowledgeStudio.ingest` normalizes bounded input and rejects malformed URLs or timestamps.
+1. A caller submits plain text or timestamped transcript segments, or asks the dedicated adapter to import one canonical YouTube video.
+2. `KnowledgeStudio.ingest` normalizes bounded input and rejects malformed URLs or timestamps. YouTube import preserves `rawText`, language metadata, and timestamped segments.
 3. The repository stores the source and lexical chunks. The `0.1.x` adapter is process-local memory.
-4. A capability retrieves relevant chunks with local BM25 scoring.
-5. Retrieved text is escaped, delimited, and marked as untrusted before a model sees it.
-6. The selected `KnowledgeModel` returns a typed draft.
-7. Domain validation normalizes the draft and the API removes trusted-only fields such as quiz answers.
-8. The web app renders the artifact and a separate evidence rail.
+4. Transcript editing runs only after a separate request, keeps the raw text immutable, replaces the active searchable text with the edited version, and records provider, cost, and length-ratio evidence.
+5. A capability retrieves relevant chunks with local BM25 scoring.
+6. Retrieved text is escaped, delimited, and marked as untrusted before a model sees it.
+7. The selected `KnowledgeModel` returns a typed draft.
+8. Domain validation normalizes the draft and the API removes trusted-only fields such as quiz answers.
+9. The web app renders the artifact and a separate evidence rail.
+
+Audiobook rendering is a parallel reuse path: the API selects the edited text when available, reserves the whole job against a process-local character budget, splits at safe sentence boundaries, calls the speech provider sequentially, validates compatible WAV chunks, and returns one merged file.
 
 ## Ports
 
@@ -30,12 +33,20 @@ The core depends on a small repository interface rather than a database client. 
 
 ### `KnowledgeModel`
 
-The model interface covers answers, mind maps, quizzes, study guides, debate turns, and debate synthesis.
+The model interface covers transcript editing, answers, mind maps, quizzes, study guides, debate turns, and debate synthesis.
 
 - `MockKnowledgeModel` is deterministic, local, free, and used by tests and the default demo.
 - `OpenAIKnowledgeModel` uses the Responses API, runtime schema validation, `store: false`, bounded transient retries, and cost reservation.
 
 Provider-specific response objects never cross into the domain API.
+
+### `YouTubeTranscriptProvider`
+
+The core accepts a provider-neutral transcript port. The public API adapter uses Supadata's native-caption mode through a fixed provider endpoint, supports immediate and asynchronous job responses, and treats YouTube oEmbed metadata as optional. The adapter never receives raw credentials in a URL and cannot be redirected to an arbitrary host by the caller.
+
+### `SpeechProvider`
+
+The core speech port returns WAV bytes for one bounded text chunk. `AudiobookRenderer` owns splitting, sequential composition, format validation, and process-local character accounting. The current API adapter uses OpenAI speech; provider keys never enter the browser bundle.
 
 ## Retrieval
 
@@ -56,7 +67,8 @@ Agent identifiers are unique and bounded. The orchestrator remains sequential in
 
 - public multi-user hosting;
 - persistent storage;
-- file or URL fetching;
+- file upload or arbitrary URL fetching;
 - tenant authentication and authorization;
 - background jobs, queues, or distributed cost accounting;
+- playlist import, bulk download, or batch audiobook production;
 - Study Groups or other modules from the originating private product.

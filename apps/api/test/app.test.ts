@@ -1,13 +1,52 @@
-import { InMemoryKnowledgeRepository, KnowledgeStudio, MockKnowledgeModel } from '@360gnh/core';
-import type { AnswerResult, KnowledgeSource, LearnerQuiz, QuizGrade } from '@360gnh/core';
+import {
+  AudiobookRenderer,
+  InMemoryKnowledgeRepository,
+  KnowledgeStudio,
+  MockKnowledgeModel,
+} from '@360gnh/core';
+import type {
+  AnswerResult,
+  KnowledgeSource,
+  LearnerQuiz,
+  QuizGrade,
+  SpeechProvider,
+  YouTubeTranscriptProvider,
+} from '@360gnh/core';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
+import { SpeechProviderError } from '../src/openai-speech.js';
 
-function makeApp(apiToken?: string) {
+function makeApp(
+  apiToken?: string,
+  media?: {
+    youtubeTranscriptProvider?: YouTubeTranscriptProvider;
+    audiobookRenderer?: AudiobookRenderer;
+  },
+) {
   const studio = new KnowledgeStudio(new InMemoryKnowledgeRepository(), new MockKnowledgeModel());
-  return createApp({ studio, ...(apiToken ? { apiToken } : {}) });
+  return createApp({ studio, ...(apiToken ? { apiToken } : {}), ...media });
+}
+
+function pcmWave(samples: number[]): Buffer {
+  const data = Buffer.from(samples);
+  const wave = Buffer.alloc(44 + data.length);
+  wave.write('RIFF', 0, 'ascii');
+  wave.writeUInt32LE(36 + data.length, 4);
+  wave.write('WAVE', 8, 'ascii');
+  wave.write('fmt ', 12, 'ascii');
+  wave.writeUInt32LE(16, 16);
+  wave.writeUInt16LE(1, 20);
+  wave.writeUInt16LE(1, 22);
+  wave.writeUInt32LE(24_000, 24);
+  wave.writeUInt32LE(48_000, 28);
+  wave.writeUInt16LE(2, 32);
+  wave.writeUInt16LE(16, 34);
+  wave.write('data', 36, 'ascii');
+  wave.writeUInt32LE(data.length, 40);
+  data.copy(wave, 44);
+  return wave;
 }
 
 interface DataEnvelope<T> {
@@ -132,6 +171,130 @@ describe('HTTP API', () => {
       error: { code: 'INTERNAL_ERROR', message: 'Unexpected server error' },
     });
     expect(response.text).not.toContain('provider-internal-detail');
+  });
+
+  it('imports one YouTube transcript and edits it only after an explicit request', async () => {
+    const youtubeTranscriptProvider: YouTubeTranscriptProvider = {
+      id: 'test-transcript',
+      fetchTranscript: (sourceUrl) =>
+        Promise.resolve({
+          title: 'Video nhập thử',
+          sourceUrl,
+          text: 'Đây là nội dung phụ đề đủ dài để đi qua cửa kiểm tra và được biên tập thành tài liệu.',
+          language: 'vi',
+          availableLanguages: ['vi'],
+          segments: [
+            {
+              text: 'Đây là nội dung phụ đề đủ dài để đi qua cửa kiểm tra.',
+              startMs: 0,
+              endMs: 5_000,
+            },
+          ],
+        }),
+    };
+    const app = makeApp(undefined, { youtubeTranscriptProvider });
+
+    const importedResponse = await request(app)
+      .post('/api/v1/youtube/import')
+      .send({ url: 'https://youtu.be/dQw4w9WgXcQ', language: 'vi' })
+      .expect(201);
+    const imported = parseBody<DataEnvelope<KnowledgeSource>>(importedResponse).data;
+    expect(imported.rawText).toBe(imported.text);
+    expect(imported.editedText).toBeUndefined();
+
+    const editedResponse = await request(app)
+      .post(`/api/v1/sources/${imported.id}/edit`)
+      .send({ targetLanguage: 'source' })
+      .expect(200);
+    const edited = parseBody<DataEnvelope<KnowledgeSource>>(editedResponse).data;
+    expect(edited.editedText).toContain('Đây là nội dung phụ đề');
+    expect(edited.rawText).toBe(imported.rawText);
+  });
+
+  it('renders one audiobook file and leaves bulk download out of the public API', async () => {
+    const speechProvider: SpeechProvider = {
+      id: 'test-speech',
+      model: 'test-voice',
+      maxInputCharacters: 4_096,
+      synthesize: () => Promise.resolve(pcmWave([1, 2, 3, 4])),
+    };
+    const audiobookRenderer = new AudiobookRenderer(speechProvider, {
+      maxBookCharacters: 20_000,
+      maxSessionCharacters: 40_000,
+    });
+    const app = makeApp(undefined, { audiobookRenderer });
+    const sourceResponse = await request(app)
+      .post('/api/v1/sources')
+      .send({
+        title: 'Nguồn để đọc',
+        text: 'Đây là nội dung dùng để dựng một tệp sách nói duy nhất và kiểm tra phản hồi nhị phân.',
+      })
+      .expect(201);
+    const source = parseBody<DataEnvelope<KnowledgeSource>>(sourceResponse).data;
+
+    const audio = await request(app)
+      .post('/api/v1/audiobooks/render')
+      .send({ sourceId: source.id, voice: 'coral', style: 'narrative', speed: 1 })
+      .expect(200)
+      .expect('Content-Type', /audio\/wav/);
+
+    expect(audio.headers['content-disposition']).toContain('360gnh-audiobook.wav');
+    expect(audio.headers['x-audiobook-chunks']).toBe('1');
+    await request(app).post('/api/v1/audiobooks/bulk-download').send({}).expect(404);
+  });
+
+  it('returns a safe actionable error when the speech model is not authorized', async () => {
+    const speechProvider: SpeechProvider = {
+      id: 'test-speech',
+      model: 'restricted-voice',
+      maxInputCharacters: 4_096,
+      synthesize: () =>
+        Promise.reject(
+          new SpeechProviderError(
+            'SPEECH_MODEL_UNAVAILABLE',
+            'Khóa máy chủ chưa được cấp quyền cho mô hình giọng đọc đã chọn.',
+            503,
+          ),
+        ),
+    };
+    const app = makeApp(undefined, {
+      audiobookRenderer: new AudiobookRenderer(speechProvider, {
+        maxBookCharacters: 20_000,
+        maxSessionCharacters: 40_000,
+      }),
+    });
+    const sourceResponse = await request(app)
+      .post('/api/v1/sources')
+      .send({
+        title: 'Nguồn lỗi quyền',
+        text: 'Đây là nội dung đủ dài để đi đến nhà cung cấp giọng đọc và kiểm tra lỗi quyền.',
+      })
+      .expect(201);
+    const source = parseBody<DataEnvelope<KnowledgeSource>>(sourceResponse).data;
+
+    const response = await request(app)
+      .post('/api/v1/audiobooks/render')
+      .send({ sourceId: source.id, voice: 'coral', style: 'narrative', speed: 1 })
+      .expect(503);
+
+    expect(parseBody<ErrorEnvelope>(response)).toEqual({
+      error: {
+        code: 'SPEECH_MODEL_UNAVAILABLE',
+        message: 'Khóa máy chủ chưa được cấp quyền cho mô hình giọng đọc đã chọn.',
+      },
+    });
+  });
+
+  it('reports unavailable media adapters without pretending the workflow succeeded', async () => {
+    const app = makeApp();
+    const meta = await request(app).get('/api/v1/meta').expect(200);
+    expect(
+      parseBody<DataEnvelope<{ features: Record<string, boolean> }>>(meta).data.features,
+    ).toEqual(expect.objectContaining({ youtubeImport: false, audiobook: false }));
+    await request(app)
+      .post('/api/v1/youtube/import')
+      .send({ url: 'https://youtu.be/dQw4w9WgXcQ' })
+      .expect(503);
   });
 });
 

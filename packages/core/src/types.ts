@@ -12,8 +12,26 @@ export interface KnowledgeSource {
   kind: SourceKind;
   sourceUrl?: string;
   text: string;
+  /** Immutable imported/original transcript when an editorial workflow was used. */
+  rawText?: string;
+  /** Clean copy currently indexed by the Studio after explicit editing. */
+  editedText?: string;
+  transcriptLanguage?: string;
+  availableTranscriptLanguages?: string[];
+  editStats?: SourceEditStats;
   segments?: TranscriptSegment[];
   createdAt: string;
+}
+
+export interface SourceEditStats {
+  parts: number;
+  wordRatio: number;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostUsd: number;
+  provider: string;
+  model: string;
+  warnings: Array<'possible-compression' | 'possible-expansion'>;
 }
 
 export interface KnowledgeChunk {

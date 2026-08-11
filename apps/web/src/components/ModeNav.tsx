@@ -2,6 +2,8 @@ import {
   BookMarked,
   BrainCircuit,
   Clapperboard,
+  FilePenLine,
+  Headphones,
   Map,
   MessagesSquare,
   ScrollText,
@@ -9,11 +11,13 @@ import {
 import type { StudioMode } from '../lib/types.js';
 
 const modes: Array<{ id: StudioMode; label: string; icon: typeof MessagesSquare }> = [
+  { id: 'editor', label: 'Biên tập', icon: FilePenLine },
   { id: 'chat', label: 'Hỏi có nguồn', icon: MessagesSquare },
   { id: 'mindmap', label: 'Bản đồ', icon: Map },
   { id: 'quiz', label: 'Tự kiểm tra', icon: BrainCircuit },
   { id: 'guide', label: 'Hướng dẫn học', icon: BookMarked },
   { id: 'clips', label: 'Đoạn thông minh', icon: Clapperboard },
+  { id: 'audiobook', label: 'Sách nói', icon: Headphones },
   { id: 'agora', label: 'Quảng trường', icon: ScrollText },
 ];
 
@@ -24,23 +28,23 @@ interface ModeNavProps {
 
 export function ModeNav({ active, onChange }: ModeNavProps) {
   return (
-    <nav className="px-4 pt-3" aria-label="Công cụ tạo tri thức">
+    <nav className="min-w-0 px-4 pt-4 md:px-6" aria-label="Công cụ tạo tri thức">
       <div
-        className="grid grid-cols-2 border-b border-studio-700 md:grid-cols-6"
+        className="grid min-w-0 grid-cols-2 border-y border-line sm:grid-cols-4 xl:grid-cols-8"
         role="tablist"
         aria-label="Chế độ làm việc"
       >
         {modes.map(({ id, label, icon: Icon }) => (
           <button
             aria-selected={active === id}
-            className={`flex min-h-13 items-center justify-center gap-2 border-b-2 px-2 py-2 text-xs transition hover:bg-mint-300/10 hover:text-linen-100 ${active === id ? 'border-amber-300 text-amber-300' : 'border-transparent text-linen-500'}`}
+            className={`flex min-w-0 min-h-13 items-center justify-center gap-2 border-b-2 px-2 py-2 text-xs leading-tight font-semibold transition duration-150 hover:bg-accent-soft hover:text-accent-hover ${active === id ? 'border-accent bg-accent-soft text-accent-hover' : 'border-transparent text-ink-faint'}`}
             key={id}
             onClick={() => onChange(id)}
             role="tab"
             type="button"
           >
-            <Icon aria-hidden="true" size={17} />
-            <span>{label}</span>
+            <Icon aria-hidden="true" className="shrink-0" size={17} />
+            <span className="min-w-0 text-center">{label}</span>
           </button>
         ))}
       </div>

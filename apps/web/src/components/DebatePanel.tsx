@@ -24,32 +24,34 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
     <div>
       <div className="grid gap-4" aria-label="Chọn người tranh luận">
         <div>
-          <span className="mb-1 block text-xs tracking-[0.14em] text-amber-300 uppercase">
+          <span className="mb-2 block text-xs font-semibold tracking-[0.18em] text-accent uppercase">
             Hội đồng
           </span>
-          <small className="text-sm text-linen-500">
+          <small className="font-body text-sm text-ink-faint">
             Chọn 2–4 góc nhìn. Mỗi bên phải trích nguồn.
           </small>
         </div>
         <div className="grid gap-2 md:grid-cols-2">
           {agents.map((agent) => (
             <label
-              className={`grid min-h-18 cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-sm border p-3 ${selected.includes(agent.id) ? 'border-amber-300 bg-amber-300/10' : 'border-studio-700'}`}
+              className={`grid min-h-18 cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3 gap-y-1 border p-3 transition duration-150 ${selected.includes(agent.id) ? 'border-accent bg-accent-soft shadow-[2px_2px_0_var(--color-line)]' : 'border-line-strong hover:border-accent hover:bg-paper-deep'}`}
               key={agent.id}
             >
               <input
                 checked={selected.includes(agent.id)}
                 onChange={() => toggle(agent.id)}
-                className="row-span-2 size-4 min-h-0 accent-amber-300"
+                className="row-span-2 size-4 min-h-0 accent-accent"
                 type="checkbox"
               />
               <strong className="text-sm">{agent.name}</strong>
-              <small className="text-xs leading-relaxed text-linen-500">{agent.description}</small>
+              <small className="font-body text-xs leading-relaxed text-ink-faint">
+                {agent.description}
+              </small>
             </label>
           ))}
         </div>
         <button
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-amber-300 bg-amber-300 px-4 text-sm font-bold text-studio-950 transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 items-center justify-center gap-2 border border-accent bg-accent px-4 text-sm font-bold text-accent-contrast shadow-[2px_2px_0_var(--color-ink)] transition duration-150 hover:-translate-x-px hover:-translate-y-px hover:bg-accent-hover hover:shadow-[3px_3px_0_var(--color-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
           disabled={busy || selected.length < 2}
           onClick={() => void onRun(selected)}
           type="button"
@@ -60,58 +62,61 @@ export function DebatePanel({ agents, debate, busy, onRun }: DebatePanelProps) {
       </div>
 
       {debate ? (
-        <div className="mt-8 grid gap-3 border-t border-studio-700 pt-6" aria-live="polite">
+        <div
+          className="mt-8 grid gap-3 border-t-4 border-double border-line-strong pt-6"
+          aria-live="polite"
+        >
           {debate.messages.map((message) => (
             <article
-              className={`border-l-3 p-4 ${message.phase === 'collision' ? 'border-amber-300 bg-amber-300/10' : 'border-mint-300 bg-mint-300/10'}`}
+              className={`border-l-4 p-4 ${message.phase === 'collision' ? 'border-accent bg-accent-soft' : 'border-success bg-success-soft'}`}
               key={message.id}
             >
               <header className="mb-3 flex items-baseline justify-between gap-3">
-                <span className="font-display text-xl">{message.agentName}</span>
-                <small className="text-xs text-linen-500">
+                <span className="font-display text-xl font-semibold">{message.agentName}</span>
+                <small className="text-xs text-ink-faint">
                   {message.phase === 'exploration' ? 'Mở góc nhìn' : 'Va chạm'} · vòng{' '}
                   {message.round}
                 </small>
               </header>
-              <p className="text-linen-400 leading-relaxed">{message.content}</p>
+              <p className="font-body leading-relaxed text-ink-soft">{message.content}</p>
               {message.citations.length > 0 ? (
-                <footer className="text-xs text-linen-500">
+                <footer className="text-xs text-ink-faint">
                   {message.citations.map((citation) => citation.sourceTitle).join(' · ')}
                 </footer>
               ) : null}
             </article>
           ))}
-          <section className="mt-5 border border-studio-500 bg-studio-850 p-5">
-            <div className="mb-5 flex items-center gap-3 text-amber-300">
+          <section className="mt-5 border border-line-strong bg-paper-deep p-5 shadow-paper">
+            <div className="mb-5 flex items-center gap-3 text-accent">
               <Scale aria-hidden="true" size={22} />
               <div>
                 <span className="mb-1 block text-xs tracking-[0.14em] uppercase">
                   Tổng hợp sau va chạm
                 </span>
-                <h2 className="m-0 font-display text-3xl font-medium text-linen-100">
+                <h2 className="m-0 font-display text-3xl font-semibold text-ink">
                   Không chọn phe hộ mày
                 </h2>
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <h3 className="text-sm text-linen-400">Điểm cùng đứng được</h3>
-                <ul className="pl-5 text-sm leading-relaxed text-linen-500">
+                <h3 className="text-sm font-semibold text-ink-soft">Điểm cùng đứng được</h3>
+                <ul className="pl-5 font-body text-sm leading-relaxed text-ink-faint marker:text-accent">
                   {debate.summary.commonGround.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
               </div>
               <div>
-                <h3 className="text-sm text-linen-400">Câu còn mở</h3>
-                <ul className="pl-5 text-sm leading-relaxed text-linen-500">
+                <h3 className="text-sm font-semibold text-ink-soft">Câu còn mở</h3>
+                <ul className="pl-5 font-body text-sm leading-relaxed text-ink-faint marker:text-accent">
                   {debate.summary.openQuestions.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
               </div>
             </div>
-            <p className="mt-5 flex items-start gap-2 border-t border-studio-700 pt-4 leading-relaxed text-amber-300">
+            <p className="mt-5 flex items-start gap-2 border-t border-line pt-4 font-body leading-relaxed text-accent">
               <Sparkles aria-hidden="true" size={18} /> {debate.summary.decisionFramework}
             </p>
           </section>

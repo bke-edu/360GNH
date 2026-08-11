@@ -9,6 +9,8 @@ Nguyễn Duy Hưng is the primary maintainer of this extraction candidate. Befor
 ## Included
 
 - source ingestion and timestamp-preserving chunking;
+- a clean single-video Supadata adapter and explicit raw-transcript-to-edited-source workflow;
+- a clean single-file OpenAI speech adapter and WAV composition workflow;
 - local BM25 retrieval and citations;
 - cited answers, mind maps, quizzes, study guides, smart clips, and evidence-bound debates;
 - deterministic original fixture and eval cases;
@@ -21,7 +23,7 @@ Nguyễn Duy Hưng is the primary maintainer of this extraction candidate. Befor
 - tenant identifiers, authentication, profiles, permissions, schemas, private routes, and deployment configuration from the originating product;
 - customer, learner, staff, or production data;
 - proprietary source documents, media, prompts, logs, and analytics;
-- playlist download, transcription operations, audiobook production, and unrelated product modules;
+- playlist or bulk download, background transcription operations, batch audiobook production, and unrelated product modules;
 - credentials, environment files, SSH material, provider account identifiers, and private endpoints.
 
 ## Public fixtures

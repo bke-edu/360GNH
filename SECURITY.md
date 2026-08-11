@@ -21,9 +21,10 @@ The project is currently maintained by one person. Reports are acknowledged and 
 
 - The default server is local-only, in-memory, and single-process.
 - `API_TOKEN` protects machine clients against accidental unauthenticated network exposure. It is not browser-safe user authentication or tenant isolation.
-- Submitted URLs are stored as metadata and are never fetched by the server.
-- The optional OpenAI adapter sends retrieved source text to OpenAI. It uses `store: false`, but operators remain responsible for checking whether their data may be sent to that provider.
-- The configured cost budget is process-local. Multiple API replicas do not share one budget.
-- Persistence, file upload, URL ingestion, and public multi-user hosting are out of scope and have not been security-reviewed.
+- Ordinary source URLs are metadata only. The dedicated single-video import route canonicalizes YouTube IDs and calls only fixed Supadata and YouTube oEmbed endpoints.
+- The optional OpenAI Responses adapter sends retrieved source text to OpenAI. It uses `store: false`, but operators remain responsible for checking whether their data may be sent to that provider.
+- Optional Supadata import sends the canonical public video URL to Supadata. Optional OpenAI speech sends the selected source text to OpenAI and returns one WAV file.
+- Text cost and audiobook character budgets are process-local. Multiple API replicas do not share one budget.
+- Persistence, file upload, arbitrary URL ingestion, bulk media processing, and public multi-user hosting are out of scope and have not been security-reviewed.
 
 See [Threat model](docs/THREAT_MODEL.md) for controls and known gaps.

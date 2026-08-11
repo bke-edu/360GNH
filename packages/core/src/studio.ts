@@ -10,8 +10,13 @@ import type { KnowledgeRepository } from './repository.js';
 import { retrieve } from './retrieval.js';
 import { gradeQuiz, validateQuizQuestions } from './quiz.js';
 import { sanitizeQuery, sanitizeSourceText, wrapUntrustedContext } from './security.js';
+import { sourceEditStats, splitTranscriptForEditing } from './transcript-editing.js';
+import { canonicalYouTubeUrl } from './youtube.js';
+import type { YouTubeTranscriptProvider } from './youtube.js';
+import type { TranscriptTargetLanguage } from './model.js';
 import type {
   AnswerResult,
+  KnowledgeChunk,
   KnowledgeSource,
   Mindmap,
   ModelUsage,
@@ -23,12 +28,31 @@ import type {
   TranscriptSegment,
 } from './types.js';
 
+const MAX_SOURCE_CHARACTERS = 250_000;
+const MAX_SOURCE_URL_CHARACTERS = 2_000;
+const MAX_TRANSCRIPT_SEGMENTS = 20_000;
+const MAX_SEGMENT_CHARACTERS = 10_000;
+
 export interface IngestSourceInput {
   title: string;
   text: string;
   kind?: KnowledgeSource['kind'];
   sourceUrl?: string;
   segments?: TranscriptSegment[];
+  rawText?: string;
+  editedText?: string;
+  transcriptLanguage?: string;
+  availableTranscriptLanguages?: string[];
+}
+
+export interface ImportYouTubeInput {
+  url: string;
+  language?: string;
+}
+
+export interface EditSourceInput {
+  sourceId: string;
+  targetLanguage?: TranscriptTargetLanguage;
 }
 
 export interface SourceQuery {
@@ -49,11 +73,17 @@ export class KnowledgeStudio {
 
   async ingest(input: IngestSourceInput): Promise<KnowledgeSource> {
     const title = sanitizeQuery(input.title).slice(0, 300);
-    const text = sanitizeSourceText(input.text);
+    const text = sanitizeBoundedText(input.text, MAX_SOURCE_CHARACTERS, 'Source text');
     if (!title) throw new Error('Source title is required');
     if (text.length < 40) throw new Error('Source text must contain at least 40 characters');
     const sourceUrl = input.sourceUrl ? normalizeHttpUrl(input.sourceUrl) : undefined;
     const segments = input.segments ? normalizeSegments(input.segments) : undefined;
+    const rawText = input.rawText
+      ? sanitizeBoundedText(input.rawText, MAX_SOURCE_CHARACTERS, 'Raw source text')
+      : undefined;
+    const editedText = input.editedText
+      ? sanitizeBoundedText(input.editedText, MAX_SOURCE_CHARACTERS, 'Edited source text')
+      : undefined;
 
     const source: KnowledgeSource = {
       id: randomUUID(),
@@ -61,6 +91,12 @@ export class KnowledgeStudio {
       kind: input.kind ?? 'transcript',
       ...(sourceUrl ? { sourceUrl } : {}),
       text,
+      ...(rawText ? { rawText } : {}),
+      ...(editedText ? { editedText } : {}),
+      ...(input.transcriptLanguage ? { transcriptLanguage: input.transcriptLanguage } : {}),
+      ...(input.availableTranscriptLanguages
+        ? { availableTranscriptLanguages: [...new Set(input.availableTranscriptLanguages)] }
+        : {}),
       ...(segments ? { segments } : {}),
       createdAt: new Date().toISOString(),
     };
@@ -72,6 +108,68 @@ export class KnowledgeStudio {
 
   async listSources(): Promise<KnowledgeSource[]> {
     return this.repository.listSources();
+  }
+
+  async importYouTube(
+    input: ImportYouTubeInput,
+    provider: YouTubeTranscriptProvider,
+  ): Promise<KnowledgeSource> {
+    const sourceUrl = canonicalYouTubeUrl(input.url);
+    const transcript = await provider.fetchTranscript(sourceUrl, input.language);
+    return this.ingest({
+      title: transcript.title,
+      text: transcript.text,
+      rawText: transcript.text,
+      kind: 'transcript',
+      sourceUrl,
+      ...(transcript.segments ? { segments: transcript.segments } : {}),
+      ...(transcript.language ? { transcriptLanguage: transcript.language } : {}),
+      ...(transcript.availableLanguages
+        ? { availableTranscriptLanguages: transcript.availableLanguages }
+        : {}),
+    });
+  }
+
+  async editSource(input: EditSourceInput): Promise<KnowledgeSource> {
+    const source = await this.repository.getSource(input.sourceId);
+    if (!source) throw new Error('Source is not available');
+    const rawText = source.rawText ?? source.text;
+    const parts = splitTranscriptForEditing(rawText);
+    const results = [];
+    for (let index = 0; index < parts.length; index += 1) {
+      const part = parts[index];
+      if (!part) continue;
+      results.push(
+        await this.model.editTranscript({
+          title: source.title,
+          ...(source.sourceUrl ? { sourceUrl: source.sourceUrl } : {}),
+          text: part,
+          targetLanguage: input.targetLanguage ?? 'source',
+          part: index + 1,
+          totalParts: parts.length,
+        }),
+      );
+    }
+    const editedText = sanitizeBoundedText(
+      results.map((result) => result.value.editedText.trim()).join('\n\n'),
+      MAX_SOURCE_CHARACTERS,
+      'Edited source text',
+    );
+    if (editedText.length < 40) throw new Error('Edited source is unexpectedly short');
+    const updated: KnowledgeSource = {
+      ...source,
+      text: editedText,
+      rawText,
+      editedText,
+      editStats: sourceEditStats(
+        rawText,
+        editedText,
+        results.map((result) => result.usage),
+        parts.length,
+      ),
+    };
+    await this.repository.saveSource(updated, chunkSource(updated));
+    return updated;
   }
 
   async answer(input: SourceQuery): Promise<AnswerResult> {
@@ -126,8 +224,28 @@ export class KnowledgeStudio {
   }
 
   async findClips(input: SourceQuery): Promise<SmartClip[]> {
-    const context = await this.contextFor(input, 10);
-    return clipsFromCitations(context.query, citationsFromChunks(context.chunks));
+    const query = sanitizeQuery(input.query);
+    if (!query) throw new Error('Query is required');
+    const sourcePromise = input.sourceIds
+      ? Promise.all(input.sourceIds.map((sourceId) => this.repository.getSource(sourceId))).then(
+          (sources) => sources.filter((source): source is KnowledgeSource => source !== null),
+        )
+      : this.repository.listSources();
+    const [currentChunks, sources] = await Promise.all([
+      this.repository.getChunks(input.sourceIds),
+      sourcePromise,
+    ]);
+    const timestampedSources = sources.filter(
+      (source) => source.segments && source.segments.length > 0,
+    );
+    const timestampedSourceIds = new Set(timestampedSources.map((source) => source.id));
+    const chunks = [
+      ...currentChunks.filter((chunk) => !timestampedSourceIds.has(chunk.sourceId)),
+      ...timestampedSources.flatMap(rawTimestampChunks),
+    ];
+    if (chunks.length === 0) throw new Error('No sources are available for this request');
+    const selected = retrieve(query, chunks, { limit: 10 });
+    return clipsFromCitations(query, citationsFromChunks(selected));
   }
 
   async debate(options: DebateOptions): Promise<DebateResult> {
@@ -214,7 +332,19 @@ export class KnowledgeStudio {
   }
 }
 
+function rawTimestampChunks(source: KnowledgeSource): KnowledgeChunk[] {
+  const rawSource: KnowledgeSource = {
+    ...source,
+    text: source.rawText ?? source.text,
+  };
+  delete rawSource.editedText;
+  return chunkSource(rawSource);
+}
+
 function normalizeHttpUrl(value: string): string {
+  if (value.length > MAX_SOURCE_URL_CHARACTERS) {
+    throw new Error(`sourceUrl cannot exceed ${MAX_SOURCE_URL_CHARACTERS} characters`);
+  }
   let url: URL;
   try {
     url = new URL(value.trim());
@@ -225,14 +355,27 @@ function normalizeHttpUrl(value: string): string {
     throw new Error('sourceUrl must use http or https');
   }
   if (url.username || url.password) throw new Error('sourceUrl must not contain credentials');
-  return url.toString();
+  const normalized = url.toString();
+  if (normalized.length > MAX_SOURCE_URL_CHARACTERS) {
+    throw new Error(`sourceUrl cannot exceed ${MAX_SOURCE_URL_CHARACTERS} characters`);
+  }
+  return normalized;
 }
 
 function normalizeSegments(segments: TranscriptSegment[]): TranscriptSegment[] {
-  if (segments.length > 20_000) throw new Error('Source cannot contain more than 20000 segments');
+  if (segments.length > MAX_TRANSCRIPT_SEGMENTS) {
+    throw new Error(`Source cannot contain more than ${MAX_TRANSCRIPT_SEGMENTS} segments`);
+  }
+  let totalCharacters = 0;
   return segments.map((segment) => {
-    const text = sanitizeSourceText(segment.text).slice(0, 10_000);
+    const text = sanitizeBoundedText(segment.text, MAX_SEGMENT_CHARACTERS, 'Transcript segments');
     if (!text) throw new Error('Transcript segments must contain text');
+    totalCharacters += text.length;
+    if (totalCharacters > MAX_SOURCE_CHARACTERS) {
+      throw new Error(
+        `Transcript segment text cannot exceed ${MAX_SOURCE_CHARACTERS} characters in total`,
+      );
+    }
     if (
       !Number.isInteger(segment.startMs) ||
       !Number.isInteger(segment.endMs) ||
@@ -243,4 +386,11 @@ function normalizeSegments(segments: TranscriptSegment[]): TranscriptSegment[] {
     }
     return { text, startMs: segment.startMs, endMs: segment.endMs };
   });
+}
+
+function sanitizeBoundedText(value: string, limit: number, label: string): string {
+  if (value.length > limit) throw new Error(`${label} cannot exceed ${limit} characters`);
+  const sanitized = sanitizeSourceText(value);
+  if (sanitized.length > limit) throw new Error(`${label} cannot exceed ${limit} characters`);
+  return sanitized;
 }

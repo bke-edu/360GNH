@@ -7,6 +7,8 @@ import type {
   ModelResult,
   QuizDraft,
   StudyGuideDraft,
+  TranscriptEditDraft,
+  TranscriptEditInput,
 } from '../model.js';
 import { tokenize } from '../tokenize.js';
 import type { Citation, ModelContext, RetrievedChunk } from '../types.js';
@@ -107,6 +109,17 @@ export class MockKnowledgeModel implements KnowledgeModel {
           sourceExcerpt: sentence,
         })),
         reviewQuestions: labels.slice(0, 3).map((label) => `Cơ chế nào khiến ${label} quan trọng?`),
+      }),
+    );
+  }
+
+  editTranscript(input: TranscriptEditInput): Promise<ModelResult<TranscriptEditDraft>> {
+    return Promise.resolve(
+      this.result({
+        editedText: input.text
+          .replace(/[ \t]+/gu, ' ')
+          .replace(/\n{3,}/gu, '\n\n')
+          .trim(),
       }),
     );
   }

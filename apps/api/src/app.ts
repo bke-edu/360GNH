@@ -2,17 +2,21 @@ import { timingSafeEqual } from 'node:crypto';
 import {
   DEFAULT_AGENTS,
   DEMO_SOURCE,
+  canonicalYouTubeUrl,
   InMemoryKnowledgeRepository,
   KnowledgeStudio,
   toLearnerQuiz,
 } from '@360gnh/core';
 import type { IngestSourceInput, Quiz, SourceQuery } from '@360gnh/core';
+import type { AudiobookRenderer, YouTubeTranscriptProvider } from '@360gnh/core';
 import cors from 'cors';
 import express from 'express';
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { z, ZodError } from 'zod';
+import { TranscriptProviderError, TranscriptUnavailableError } from './supadata-transcript.js';
+import { SpeechProviderError } from './openai-speech.js';
 
 const SourceIdsSchema = z.array(z.string().uuid()).min(1).max(50).optional();
 const QuerySchema = z.object({
@@ -47,11 +51,50 @@ const DebateSchema = QuerySchema.extend({
   agentIds: z.array(z.string()).min(2).max(4),
   collisionRounds: z.number().int().min(1).max(2).optional(),
 });
+const YouTubeImportSchema = z.object({
+  url: z
+    .string()
+    .max(2_000)
+    .refine((value) => {
+      try {
+        canonicalYouTubeUrl(value);
+        return true;
+      } catch {
+        return false;
+      }
+    }, 'A valid public YouTube video URL is required'),
+  language: z.enum(['vi', 'en']).optional(),
+});
+const EditSourceSchema = z.object({
+  targetLanguage: z.enum(['source', 'vi', 'en']).default('source'),
+});
+const AudiobookSchema = z.object({
+  sourceId: z.string().uuid(),
+  voice: z.enum([
+    'alloy',
+    'ash',
+    'ballad',
+    'coral',
+    'echo',
+    'fable',
+    'onyx',
+    'nova',
+    'sage',
+    'shimmer',
+    'verse',
+    'marin',
+    'cedar',
+  ]),
+  style: z.enum(['narrative', 'calm', 'educational', 'cheerful']).default('narrative'),
+  speed: z.number().min(0.5).max(2).default(1),
+});
 
 export interface AppOptions {
   studio: KnowledgeStudio;
   apiToken?: string;
   webOrigins?: string[];
+  youtubeTranscriptProvider?: YouTubeTranscriptProvider;
+  audiobookRenderer?: AudiobookRenderer;
 }
 
 export function createDefaultStudio(model: KnowledgeStudio['model']): KnowledgeStudio {
@@ -62,6 +105,12 @@ export function createApp(options: AppOptions): express.Express {
   const app = express();
   const quizStore = new Map<string, { quiz: Quiz; expiresAt: number }>();
   const origins = new Set(options.webOrigins ?? ['http://127.0.0.1:4311']);
+  const expensiveOperationLimit = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+  });
 
   app.disable('x-powered-by');
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));
@@ -95,6 +144,14 @@ export function createApp(options: AppOptions): express.Express {
         provider: options.studio.model.provider,
         model: options.studio.model.model,
         debateAgents: DEFAULT_AGENTS,
+        features: {
+          youtubeImport: Boolean(options.youtubeTranscriptProvider),
+          transcriptEditing: true,
+          audiobook: Boolean(options.audiobookRenderer),
+        },
+        ...(options.audiobookRenderer
+          ? { audiobook: { ...options.audiobookRenderer.snapshot(), voices: AUDIOBOOK_VOICES } }
+          : {}),
       },
     });
   });
@@ -112,6 +169,77 @@ export function createApp(options: AppOptions): express.Express {
       const input = IngestSchema.parse(request.body);
       const source = await options.studio.ingest(toIngestInput(input));
       response.status(201).json({ data: source });
+    }),
+  );
+
+  app.post(
+    '/api/v1/youtube/import',
+    expensiveOperationLimit,
+    asyncRoute(async (request, response) => {
+      if (!options.youtubeTranscriptProvider) {
+        throw new HttpError(
+          503,
+          'FEATURE_UNAVAILABLE',
+          'Máy chủ chưa được cấu hình để lấy phụ đề YouTube.',
+        );
+      }
+      const input = YouTubeImportSchema.parse(request.body);
+      const source = await options.studio.importYouTube(
+        {
+          url: input.url,
+          ...(input.language ? { language: input.language } : {}),
+        },
+        options.youtubeTranscriptProvider,
+      );
+      response.status(201).json({ data: source });
+    }),
+  );
+
+  app.post(
+    '/api/v1/sources/:id/edit',
+    expensiveOperationLimit,
+    asyncRoute(async (request, response) => {
+      const sourceId = z.string().uuid().parse(parameter(request.params['id']));
+      const input = EditSourceSchema.parse(request.body);
+      response.json({
+        data: await options.studio.editSource({
+          sourceId,
+          targetLanguage: input.targetLanguage,
+        }),
+      });
+    }),
+  );
+
+  app.post(
+    '/api/v1/audiobooks/render',
+    expensiveOperationLimit,
+    asyncRoute(async (request, response) => {
+      if (!options.audiobookRenderer) {
+        throw new HttpError(
+          503,
+          'FEATURE_UNAVAILABLE',
+          'Máy chủ chưa được cấu hình để dựng sách nói.',
+        );
+      }
+      const input = AudiobookSchema.parse(request.body);
+      const source = await options.studio.repository.getSource(input.sourceId);
+      if (!source) throw new HttpError(404, 'SOURCE_NOT_FOUND', 'Nguồn không còn tồn tại.');
+      const rendered = await options.audiobookRenderer.render({
+        text: source.editedText ?? source.text,
+        voice: input.voice,
+        instructions: AUDIOBOOK_STYLE_INSTRUCTIONS[input.style],
+        speed: input.speed,
+      });
+      response
+        .status(200)
+        .set({
+          'Content-Type': rendered.mimeType,
+          'Content-Disposition': 'attachment; filename="360gnh-audiobook.wav"',
+          'Cache-Control': 'no-store',
+          'X-Audiobook-Chunks': String(rendered.chunkCount),
+          'X-Content-Type-Options': 'nosniff',
+        })
+        .send(rendered.audio);
     }),
   );
 
@@ -231,6 +359,30 @@ export function createApp(options: AppOptions): express.Express {
   });
 
   const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+    if (error instanceof HttpError) {
+      response.status(error.status).json({
+        error: { code: error.code, message: error.message },
+      });
+      return;
+    }
+    if (error instanceof TranscriptUnavailableError) {
+      response.status(422).json({
+        error: { code: error.code, message: error.message },
+      });
+      return;
+    }
+    if (error instanceof TranscriptProviderError) {
+      response.status(502).json({
+        error: { code: error.code, message: error.message },
+      });
+      return;
+    }
+    if (error instanceof SpeechProviderError) {
+      response.status(error.httpStatus).json({
+        error: { code: error.code, message: error.message },
+      });
+      return;
+    }
     if (error instanceof ZodError) {
       response.status(400).json({
         error: {
@@ -266,6 +418,40 @@ export function createApp(options: AppOptions): express.Express {
   return app;
 }
 
+class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'HttpError';
+  }
+}
+
+const AUDIOBOOK_VOICES = [
+  'alloy',
+  'ash',
+  'ballad',
+  'coral',
+  'echo',
+  'fable',
+  'onyx',
+  'nova',
+  'sage',
+  'shimmer',
+  'verse',
+  'marin',
+  'cedar',
+] as const;
+
+const AUDIOBOOK_STYLE_INSTRUCTIONS = {
+  narrative: 'Read like a warm audiobook narrator, preserving punctuation and natural pauses.',
+  calm: 'Read calmly and gently with unhurried pauses and clear pronunciation.',
+  educational: 'Read like a clear teacher. Emphasize key terms without sounding theatrical.',
+  cheerful: 'Read with a warm, friendly, lightly cheerful tone and natural pacing.',
+} as const;
+
 function authentication(expectedToken?: string): express.RequestHandler {
   if (!expectedToken) return (_request, _response, next) => next();
   return (request, response, next) => {
@@ -287,6 +473,10 @@ function safeEqual(left: string, right: string): boolean {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function parameter(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? (value[0] ?? '') : (value ?? '');
 }
 
 function asyncRoute(

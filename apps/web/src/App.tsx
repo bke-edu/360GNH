@@ -1,9 +1,24 @@
 import { Github, LibraryBig, ShieldCheck, X } from 'lucide-react';
+import { useState } from 'react';
 import { CitationRail } from './components/CitationRail.js';
 import { ModeNav } from './components/ModeNav.js';
 import { SourceRail } from './components/SourceRail.js';
+import { ThemeToggle } from './components/ThemeToggle.js';
 import { Workspace } from './components/Workspace.js';
 import { useStudio } from './lib/useStudio.js';
+
+type StudioTheme = 'light' | 'dark';
+
+function initialTheme(): StudioTheme {
+  try {
+    const stored = localStorage.getItem('360gnh-theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark';
+  } catch {
+    // Storage can be unavailable; the studio still works with the paper theme.
+  }
+  return 'light';
+}
 
 export function App() {
   const {
@@ -13,64 +28,89 @@ export function App() {
     setQuery,
     selectSource,
     addSource,
+    importYouTube,
+    editSource,
     run,
     grade,
     clearError,
   } = useStudio();
+  const [theme, setTheme] = useState(initialTheme);
+  const hasExternalFeature = Boolean(
+    snapshot.meta &&
+    (snapshot.meta.provider !== 'local' ||
+      snapshot.meta.features?.youtubeImport ||
+      snapshot.meta.features?.audiobook),
+  );
+
+  const toggleTheme = () => {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('360gnh-theme', next);
+      } catch {
+        // Storage can be unavailable; the current page still changes theme.
+      }
+      return next;
+    });
+  };
 
   return (
-    <div className="min-h-dvh bg-studio-950 font-sans text-linen-100">
+    <div
+      className={`${theme === 'dark' ? '[color-scheme:dark]' : '[color-scheme:light]'} min-h-dvh min-w-0 bg-paper font-sans text-ink transition-colors duration-200 before:pointer-events-none before:fixed before:inset-0 before:z-50 before:bg-[radial-gradient(circle,var(--color-texture-dot)_0_0.45px,transparent_0.6px)] before:opacity-20 before:content-[''] before:[background-size:7px_9px]`}
+    >
       <a
-        className="fixed top-3 left-3 z-50 -translate-y-40 rounded-sm bg-amber-300 px-4 py-3 font-bold text-studio-950 transition-transform focus:translate-y-0"
+        className="fixed top-3 left-3 z-60 -translate-y-40 border border-ink bg-paper-raised px-4 py-3 font-bold text-ink shadow-paper transition-transform focus:translate-y-0"
         href="#main-workspace"
       >
         Đi tới bàn làm việc
       </a>
-      <header className="flex min-h-17 items-center gap-5 border-b border-studio-700/70 bg-studio-950/90 px-4 py-3 backdrop-blur-xl md:px-6">
-        <a
-          className="flex shrink-0 items-center gap-3 no-underline"
-          href="/"
-          aria-label="360GNH Knowledge Studio"
-        >
-          <span className="font-display text-3xl font-semibold tracking-[-0.08em] text-amber-300">
-            360
-          </span>
-          <span className="h-8 w-px bg-studio-600" />
-          <span className="grid leading-none">
-            <strong className="text-sm tracking-[0.24em]">GNH</strong>
-            <small className="mt-1 text-[0.68rem] tracking-[0.06em] text-linen-500 uppercase">
-              Knowledge Studio
-            </small>
-          </span>
-        </a>
-        <div className="hidden items-center gap-2 text-sm text-linen-400 lg:flex">
-          <LibraryBig aria-hidden="true" size={16} />
-          <span>Nguồn dài vào. Hiểu biết có dấu vết ra.</span>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="hidden items-center gap-2 text-xs text-mint-300 md:inline-flex">
-            <ShieldCheck aria-hidden="true" size={15} /> không cần khóa để thử
-          </span>
+      <header className="sticky top-0 z-30 border-b-4 border-double border-line-strong bg-paper">
+        <div className="mx-auto flex min-h-17 max-w-[96rem] items-center gap-4 px-4 py-3 md:px-6">
           <a
-            aria-label="Mở kho mã GitHub"
-            className="grid size-11 place-items-center rounded-full border border-studio-700 bg-studio-850 transition hover:-translate-y-0.5 hover:border-amber-300"
-            href="https://github.com/nguyenduyhung1989/360GNH"
-            rel="noreferrer"
-            target="_blank"
+            className="flex shrink-0 items-baseline gap-2 no-underline"
+            href="/"
+            aria-label="360GNH Knowledge Studio"
           >
-            <Github aria-hidden="true" size={18} />
+            <strong className="font-display text-[1.55rem] font-semibold tracking-[-0.045em]">
+              360GNH
+            </strong>
+            <span className="hidden text-[0.65rem] font-semibold tracking-[0.18em] text-ink-faint uppercase sm:inline">
+              Knowledge Studio
+            </span>
           </a>
+          <div className="hidden items-center gap-2 text-sm text-ink-soft lg:flex">
+            <LibraryBig aria-hidden="true" size={16} />
+            <span>Video dài vào. Tài liệu sạch và giọng đọc ra.</span>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="hidden items-center gap-2 text-xs font-medium text-ink-faint md:inline-flex">
+              <ShieldCheck aria-hidden="true" className="text-success" size={15} />
+              {snapshot.meta?.provider === 'local'
+                ? 'không cần khóa để thử'
+                : 'khóa mô hình nằm ở máy chủ'}
+            </span>
+            <ThemeToggle onToggle={toggleTheme} theme={theme} />
+            <a
+              aria-label="Mở kho mã GitHub"
+              className="grid size-11 place-items-center rounded-full border border-line-strong bg-transparent text-ink-soft transition duration-150 hover:-translate-y-0.5 hover:border-accent hover:bg-accent-soft hover:text-accent-hover active:scale-95"
+              href="https://github.com/nguyenduyhung1989/360GNH"
+              rel="noreferrer"
+              target="_blank"
+            >
+              <Github aria-hidden="true" size={18} />
+            </a>
+          </div>
         </div>
       </header>
 
       {snapshot.error ? (
         <div
-          className="flex items-center justify-between gap-4 border-b border-danger-400 bg-danger-400/10 px-4 py-3 text-sm text-danger-200"
+          className="mx-auto flex max-w-[96rem] items-center justify-between gap-4 border-x border-b border-danger bg-danger-soft px-4 py-3 text-sm text-danger"
           role="alert"
         >
           <span>{snapshot.error}</span>
           <button
-            className="grid size-11 shrink-0 place-items-center bg-transparent"
+            className="grid size-11 shrink-0 place-items-center bg-transparent transition hover:text-accent"
             aria-label="Đóng thông báo lỗi"
             onClick={clearError}
             type="button"
@@ -81,20 +121,23 @@ export function App() {
       ) : null}
 
       <main
-        className="grid min-h-[calc(100dvh-4.25rem)] grid-cols-1 xl:grid-cols-[17.5rem_minmax(0,1fr)] 2xl:grid-cols-[17.5rem_minmax(42rem,1fr)_18.5rem]"
+        className="mx-auto grid min-h-[calc(100dvh-4.25rem)] w-full min-w-0 max-w-[96rem] grid-cols-1 border-x border-line lg:grid-cols-[16rem_minmax(0,1fr)] 2xl:grid-cols-[16rem_minmax(42rem,1fr)_18rem]"
         id="main-workspace"
       >
         <SourceRail
           activeSourceId={snapshot.activeSourceId}
           busy={snapshot.busy}
           onAdd={addSource}
+          onImportYouTube={importYouTube}
           onSelect={selectSource}
           sources={snapshot.sources}
+          youtubeImportAvailable={Boolean(snapshot.meta?.features?.youtubeImport)}
         />
         <div className="flex min-w-0 flex-col">
           <ModeNav active={snapshot.mode} onChange={setMode} />
           <Workspace
-            activeSourceTitle={activeSource?.title ?? null}
+            activeSource={activeSource}
+            onEdit={editSource}
             onGrade={grade}
             onQueryChange={setQuery}
             onRun={run}
@@ -104,9 +147,13 @@ export function App() {
         <CitationRail citations={snapshot.citations} />
       </main>
 
-      <footer className="flex flex-wrap justify-between gap-2 border-t border-studio-700 px-4 py-4 text-xs text-linen-500">
-        <span>360GNH · nguồn mở · MIT</span>
-        <span>Máy giả lập cục bộ là mặc định. Không gửi dữ liệu đi đâu cả.</span>
+      <footer className="mx-auto flex max-w-[96rem] flex-wrap justify-between gap-2 border-x border-t-4 border-double border-line-strong px-4 py-6 text-xs text-ink-faint md:px-6">
+        <span className="font-semibold tracking-[0.12em] uppercase">360GNH · nguồn mở · MIT</span>
+        <span>
+          {hasExternalFeature
+            ? 'Chỉ gửi dữ liệu ra ngoài khi mày chủ động nhập YouTube, gọi mô hình ngoài hoặc dựng sách nói.'
+            : 'Máy giả lập cục bộ là mặc định. Không gửi dữ liệu đi đâu cả.'}
+        </span>
       </footer>
     </div>
   );
