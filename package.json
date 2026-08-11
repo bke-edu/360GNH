@@ -1,6 +1,6 @@
 {
   "name": "360gnh-knowledge-studio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Provider-neutral knowledge studio for cited chat, learning artifacts, and multi-perspective debate.",
   "author": "Nguyễn Duy Hưng",

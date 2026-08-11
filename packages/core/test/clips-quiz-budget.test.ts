@@ -6,6 +6,7 @@ import {
   gradeQuiz,
   mergeAdjacentClips,
   resolveTimestampFromSegments,
+  timestampedSourceUrl,
   toLearnerQuiz,
   validateQuizQuestions,
 } from '../src/index.js';
@@ -36,6 +37,29 @@ describe('smart clips', () => {
       startSeconds: 28,
       endSeconds: 64,
     });
+  });
+
+  it('adds timestamps only to explicitly allowed YouTube hosts', () => {
+    const citation = {
+      sourceId: 'source-1',
+      sourceTitle: 'Video',
+      excerpt: 'Excerpt',
+      score: 1,
+      startSeconds: 42,
+    };
+
+    expect(
+      timestampedSourceUrl({
+        ...citation,
+        sourceUrl: 'https://m.youtube.com/watch?v=example',
+      }),
+    ).toBe('https://m.youtube.com/watch?v=example&t=42');
+    expect(
+      timestampedSourceUrl({
+        ...citation,
+        sourceUrl: 'https://notyoutube.com/watch?v=example',
+      }),
+    ).toBe('https://notyoutube.com/watch?v=example');
   });
 });
 

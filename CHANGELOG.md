@@ -4,6 +4,12 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-11
+
+### Security
+
+- restrict YouTube timestamp links to an explicit host allowlist so lookalike domains remain untouched.
+
 ## [0.1.0] - 2026-08-11
 
 ### Added
@@ -28,5 +34,6 @@ All notable changes will be documented here. The project follows [Semantic Versi
 - ordinary source URLs remain metadata; the dedicated YouTube route is restricted to canonical video IDs and fixed provider endpoints;
 - expensive media operations have a separate rate limit, server-only keys, and no playlist or bulk-download route.
 
-[Unreleased]: https://github.com/nguyenduyhung1989/360GNH/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/nguyenduyhung1989/360GNH/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/nguyenduyhung1989/360GNH/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/nguyenduyhung1989/360GNH/releases/tag/v0.1.0

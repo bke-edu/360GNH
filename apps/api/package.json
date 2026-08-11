@@ -1,6 +1,6 @@
 {
   "name": "@360gnh/api",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local HTTP adapter for 360GNH Knowledge Studio.",
   "private": true,
   "license": "MIT",
@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@360gnh/core": "0.1.0",
+    "@360gnh/core": "0.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",

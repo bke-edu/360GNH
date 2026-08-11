@@ -1,5 +1,12 @@
 import type { Citation, RetrievedChunk } from './types.js';
 
+const YOUTUBE_HOSTS = new Set([
+  'youtube.com',
+  'www.youtube.com',
+  'm.youtube.com',
+  'music.youtube.com',
+]);
+
 export function citationsFromChunks(chunks: RetrievedChunk[], maxExcerpt = 240): Citation[] {
   return chunks.map((chunk) => ({
     sourceId: chunk.sourceId,
@@ -29,7 +36,7 @@ export function timestampedSourceUrl(citation: Citation): string | undefined {
       url.searchParams.set('t', String(citation.startSeconds));
       return url.toString();
     }
-    if (url.hostname.endsWith('youtube.com')) {
+    if (YOUTUBE_HOSTS.has(url.hostname)) {
       url.searchParams.set('t', String(citation.startSeconds));
       return url.toString();
     }
