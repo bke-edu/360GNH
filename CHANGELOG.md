@@ -4,6 +4,11 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ## [Unreleased]
 
+### Added
+
+- hardened API and web container images plus a loopback-only Docker Compose stack that restarts with Docker;
+- an environment-safe startup helper that can reuse a private key file without copying it into the repository.
+
 ## [0.1.1] - 2026-08-11
 
 ### Security

@@ -1,0 +1,91 @@
+name: 360gnh
+
+services:
+  api:
+    image: 360gnh-api:local
+    build:
+      context: .
+      target: api
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4310
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://127.0.0.1:4311,http://localhost:4311}
+      API_TOKEN: ${API_TOKEN:?Set API_TOKEN to a random value}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-luna}
+      AI_BUDGET_USD: ${AI_BUDGET_USD:-1}
+      OPENAI_INPUT_USD_PER_MTOK: ${OPENAI_INPUT_USD_PER_MTOK:-}
+      OPENAI_OUTPUT_USD_PER_MTOK: ${OPENAI_OUTPUT_USD_PER_MTOK:-}
+      SUPADATA_API_KEY: ${SUPADATA_API_KEY:-}
+      OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-gpt-4o-mini-tts}
+      AUDIOBOOK_MAX_CHARS: ${AUDIOBOOK_MAX_CHARS:-20000}
+      AUDIOBOOK_SESSION_CHAR_BUDGET: ${AUDIOBOOK_SESSION_CHAR_BUDGET:-100000}
+    ports:
+      - 127.0.0.1:4310:4310
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:uid=1000,gid=1000,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 1.5
+    stop_grace_period: 15s
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:4310/health',{headers:{authorization:'Bearer '+process.env.API_TOKEN}}).then(response=>{if(!response.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  web:
+    image: 360gnh-web:local
+    build:
+      context: .
+      target: web
+    environment:
+      API_TOKEN: ${API_TOKEN:?Set API_TOKEN to the same random value used by the API}
+      NGINX_ENVSUBST_FILTER: ^API_TOKEN$
+    ports:
+      - 127.0.0.1:4311:8080
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /etc/nginx/conf.d:uid=101,gid=101,mode=0755
+      - /tmp:uid=101,gid=101,mode=1777
+      - /var/cache/nginx:uid=101,gid=101,mode=0755
+      - /var/run:uid=101,gid=101,mode=0755
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.5
+    stop_grace_period: 10s
+    healthcheck:
+      test: [CMD, wget, -qO-, http://127.0.0.1:8080/health]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'

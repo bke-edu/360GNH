@@ -25,6 +25,27 @@ npm run eval
 npm run check
 ```
 
+### Tự chạy cùng Docker
+
+Docker Compose dựng riêng container API không chạy bằng quyền quản trị và container giao diện tĩnh. Cả hai chỉ mở trên máy cục bộ và dùng `restart: unless-stopped`, nên tự sống lại mỗi khi Docker khởi động. Trình duyệt gọi API đã bảo vệ qua máy chuyển tiếp của giao diện; khóa nhà cung cấp không đi vào gói giao diện hay lớp image.
+
+Muốn chạy mô hình cục bộ không cần khóa:
+
+```bash
+cp .env.example .env
+./scripts/docker-up.sh
+```
+
+Nếu chưa có `API_TOKEN`, trình hỗ trợ sẽ tự sinh một mã nội bộ mới. Nếu gọi Compose trực tiếp thì người vận hành phải tự đặt giá trị này.
+
+Muốn dùng lại một tệp môi trường riêng mà không chép khóa vào repository:
+
+```bash
+AI_PROVIDER=openai ./scripts/docker-up.sh /đường/dẫn/tuyệt/đối/tới/private.env
+```
+
+Mở <http://127.0.0.1:4311>. Xem trạng thái bằng `docker compose ps`; xem tối đa 100 dòng nhật ký gần nhất bằng `docker compose logs --tail 100`. Chỉ cần dựng lại sau khi mã hoặc phụ thuộc đổi. Bộ nhớ hiện tại vẫn mất các nguồn đã nhập khi container API khởi động lại.
+
 ## Có gì bên trong
 
 - hỏi đáp bám nguồn bằng bộ tìm kiếm BM25 cục bộ;

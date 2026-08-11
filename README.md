@@ -50,6 +50,27 @@ npm run eval
 npm run check
 ```
 
+### Keep it running with Docker
+
+Docker Compose builds a non-root API container and a separate static web container. Both bind to loopback and use `restart: unless-stopped`, so they return automatically whenever Docker starts. The browser reaches the protected API through the web proxy; provider keys never enter the web bundle or image layers.
+
+For the key-free local model:
+
+```bash
+cp .env.example .env
+./scripts/docker-up.sh
+```
+
+The helper generates a fresh internal `API_TOKEN` when none is already set. If you invoke Compose directly instead, set that value yourself.
+
+To reuse an existing private environment file without copying its keys into this repository:
+
+```bash
+AI_PROVIDER=openai ./scripts/docker-up.sh /absolute/path/to/private.env
+```
+
+Open <http://127.0.0.1:4311>. Check status with `docker compose ps`; view bounded logs with `docker compose logs --tail 100`. Rebuild only after source or dependency changes. The current in-memory adapter still loses imported sources when the API container restarts.
+
 ## Optional OpenAI adapter
 
 The default `mock` provider never needs a key. To test a real model, copy `.env.example` to `.env`, then set:
