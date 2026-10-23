@@ -35,7 +35,7 @@ Provider status never returns a complete credential. It reports only whether eac
 
 ## Network behavior
 
-The default bind is `127.0.0.1:4310`. A non-loopback `HOST` requires `API_TOKEN`, checked with a timing-safe comparison. This token is intended for machine clients; the bundled browser app does not embed it.
+The default bind uses the loopback interface on port `4310`. A non-loopback `HOST` requires `API_TOKEN`, checked with a timing-safe comparison. This token is intended for machine clients; the bundled browser app does not embed it.
 
 `WEB_ORIGIN` is a comma-separated exact allowlist. Requests are limited to 60 per minute per process, while YouTube import, transcript editing, and audiobook rendering are limited to 10 per minute. JSON bodies are capped at 256 KiB.
 

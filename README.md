@@ -1,3 +1,5 @@
+> Last verified: 2026-10-23 at commit 7647a3f
+
 # 360GNH Knowledge Studio
 
 **Languages:** English · [Tiếng Việt](README.vi.md)
@@ -40,7 +42,7 @@ npm ci
 npm run dev
 ```
 
-Open <http://127.0.0.1:4311>. The API starts at <http://127.0.0.1:4310> and seeds an original bilingual learning-science fixture on first load. A key-free installation opens provider setup once and still lets you enter the local demo. Reopen it later with the settings button in the header. Use the **VI / EN** control to switch the entire interface; local model outputs follow the query language.
+Open <http://localhost:4311>. The API starts at <http://localhost:4310> and seeds an original bilingual learning-science fixture on first load. A key-free installation opens provider setup once and still lets you enter the local demo. Reopen it later with the settings button in the header. Use the **VI / EN** control to switch the entire interface; local model outputs follow the query language.
 
 Useful commands:
 
@@ -66,20 +68,22 @@ The helper generates a fresh internal `API_TOKEN` when none is already set. If y
 Environment variables remain available for headless operation and always override interface-managed keys. To reuse an existing private environment file without copying its keys into this repository:
 
 ```bash
-AI_PROVIDER=openai ./scripts/docker-up.sh /absolute/path/to/private.env
+AI_PROVIDER=openai ./scripts/docker-up.sh "$PRIVATE_ENV_FILE"
 ```
 
-Open <http://127.0.0.1:4311>. Check status with `docker compose ps`; view bounded logs with `docker compose logs --tail 100`. Rebuild only after source or dependency changes. The current in-memory adapter still loses imported sources when the API container restarts.
+Set `PRIVATE_ENV_FILE` locally to the path of the private environment file before running this command. Do not copy its contents into the repository.
+
+Open <http://localhost:4311>. Check status with `docker compose ps`; view bounded logs with `docker compose logs --tail 100`. Rebuild only after source or dependency changes. The current in-memory adapter still loses imported sources when the API container restarts.
 
 ## Provider setup and optional OpenAI adapter
 
 The default `mock` provider never needs a key. The easiest real-model path is the settings button in the header: enter a key, choose the knowledge and speech models, set the process-local cost ceiling, then press **Verify and save OpenAI**. Verification reads model metadata and does not generate billable content; it proves key validity and model visibility, not permission to call Responses or speech. Those endpoint permissions are checked by the first real operation. The API writes only after verification succeeds, switches providers without restarting, and returns only a four-character hint.
 
-For headless configuration, copy `.env.example` to `.env`, then set:
+For headless configuration, copy `.env.example` to `.env`, then enter your own key locally in the blank value below:
 
 ```dotenv
 AI_PROVIDER=openai
-OPENAI_API_KEY=your_key_here
+OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.6-luna
 AI_BUDGET_USD=1
 ```
@@ -94,10 +98,10 @@ The default demo still accepts pasted text without external services. Supadata c
 
 ```dotenv
 # Import one public YouTube video's native captions.
-SUPADATA_API_KEY=your_key_here
+SUPADATA_API_KEY=
 
 # Also enables one-file speech rendering, even if AI_PROVIDER stays mock.
-OPENAI_API_KEY=your_key_here
+OPENAI_API_KEY=
 OPENAI_TTS_MODEL=gpt-4o-mini-tts
 AUDIOBOOK_MAX_CHARS=20000
 AUDIOBOOK_SESSION_CHAR_BUDGET=100000
@@ -106,6 +110,8 @@ AUDIOBOOK_SESSION_CHAR_BUDGET=100000
 The flow is deliberately explicit: import one video → inspect the raw transcript → press **Edit with AI** → reuse the clean source → render one WAV file. There is no playlist or bulk-download endpoint. Speech is AI-generated and must be disclosed to listeners.
 
 ## Architecture
+
+Repository profile: [overview](docs/00-overview.md), [architecture](docs/01-architecture.md), [interfaces](docs/02-api.md), [data and persistence](docs/03-database.md), [deployment](docs/04-deployment.md), [security](docs/05-security.md), and [roadmap](docs/06-roadmap.md).
 
 ```mermaid
 flowchart LR
@@ -128,7 +134,7 @@ Included: the standalone Knowledge Studio engine, single-video transcript-to-cle
 
 Not included:
 
-- Study Groups — deliberately deferred until that module is stable and separately reviewed;
+- Study Groups, deliberately deferred until that module is stable and separately reviewed;
 - tenant-specific authentication, profiles, permissions, or schemas from the originating private product;
 - production data, customer content, credentials, or deployment configuration;
 - playlist or bulk media downloaders, batch audiobook production, and other unrelated product modules;

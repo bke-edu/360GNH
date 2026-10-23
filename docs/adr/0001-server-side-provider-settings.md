@@ -1,3 +1,5 @@
+> Last verified: 2026-10-23 at commit 7647a3f
+
 # ADR 0001: Server-side provider settings
 
 **Date:** 2026-08-11

@@ -1,0 +1,60 @@
+# > Last verified: 2026-10-23 at commit 7647a3f
+name: "360gnh-knowledge-studio"
+repository: "https://github.com/bke-edu/360GNH"
+type: "service"
+runtime: "Node.js >=20 with a browser-based React app"
+language: "TypeScript"
+entrypoint: "apps/api/src/server.ts"
+docs: "docs/"
+updated: "2026-10-23"
+
+exposes:
+  - kind: "HTTP API"
+    name: "Knowledge Studio API"
+    consumers:
+      - "apps/web"
+      - "local machine clients"
+    contract: "docs/API.md"
+  - kind: "TypeScript package"
+    name: "@360gnh/core"
+    consumers:
+      - "apps/api"
+      - "packages/core/scripts/eval.ts"
+    contract: "packages/core/src/index.ts"
+  - kind: "browser application"
+    name: "Bilingual Knowledge Studio web app"
+    consumers:
+      - "local operator browser"
+    contract: "apps/web/src/main.tsx"
+
+consumes:
+  - target: "OpenAI"
+    kind: "optional model and speech APIs"
+    purpose: "Cited learning responses, explicit transcript editing, and one-file speech rendering when configured"
+  - target: "Supadata"
+    kind: "optional transcript API"
+    purpose: "Native captions for a single canonical public YouTube video"
+  - target: "YouTube oEmbed"
+    kind: "optional metadata API"
+    purpose: "Video title, author, and thumbnail metadata"
+
+depends_on:
+  - "Node.js >=20"
+  - "npm workspaces"
+  - "Docker Compose for the optional local container workflow"
+
+deploy:
+  environments:
+    - name: "local development"
+      config_source: "process environment and optional API-managed provider settings"
+    - name: "local Docker Compose"
+      config_source: "Compose environment and API-only provider settings volume"
+  build_command: "npm run build"
+  rollback: "Unknown (not found in repository)"
+
+invariants:
+  - "The default mock model and demo fixture work without an external provider key; see packages/core/src/providers/mock-model.ts and packages/core/src/demo.ts."
+  - "Source and quiz data are process-local; provider settings use a separate API-side persistent store."
+  - "Quiz answers and explanations remain server-side until grading; see apps/api/src/app.ts."
+  - "Transcript import is single-video and calls fixed provider destinations; no bulk route exists."
+  - "Model and speech budgets are process-local and are reserved before paid provider work."
