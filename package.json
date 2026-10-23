@@ -7,10 +7,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nguyenduyhung1989/360GNH.git"
+    "url": "git+https://github.com/bke-edu/360GNH.git"
   },
-  "homepage": "https://github.com/nguyenduyhung1989/360GNH#readme",
-  "bugs": "https://github.com/nguyenduyhung1989/360GNH/issues",
+  "homepage": "https://github.com/bke-edu/360GNH#readme",
+  "bugs": "https://github.com/bke-edu/360GNH/issues",
   "keywords": [
     "knowledge-studio",
     "retrieval-augmented-generation",

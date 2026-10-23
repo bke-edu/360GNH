@@ -6,8 +6,8 @@ version: 0.1.0
 authors:
   - family-names: 'Nguyễn'
     given-names: 'Duy Hưng'
-repository-code: 'https://github.com/nguyenduyhung1989/360GNH'
-url: 'https://github.com/nguyenduyhung1989/360GNH'
+repository-code: 'https://github.com/bke-edu/360GNH'
+url: 'https://github.com/bke-edu/360GNH'
 license: MIT
 keywords:
   - retrieval-augmented generation

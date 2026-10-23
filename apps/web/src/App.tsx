@@ -127,7 +127,7 @@ function StudioApp() {
             <a
               aria-label={pick('Mở kho mã GitHub', 'Open GitHub repository')}
               className="hidden size-11 place-items-center rounded-full border border-line-strong bg-transparent text-ink-soft transition duration-150 hover:-translate-y-0.5 hover:border-accent hover:bg-accent-soft hover:text-accent-hover active:scale-95 sm:grid"
-              href="https://github.com/nguyenduyhung1989/360GNH"
+              href="https://github.com/bke-edu/360GNH"
               rel="noreferrer"
               target="_blank"
             >

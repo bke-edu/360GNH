@@ -31,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nguyenduyhung1989/360GNH.git",
+    "url": "git+https://github.com/bke-edu/360GNH.git",
     "directory": "packages/core"
   },
   "publishConfig": {

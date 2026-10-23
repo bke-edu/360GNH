@@ -6,7 +6,7 @@
 
 > Import one YouTube video, preserve its raw transcript, edit it into a reusable source, then turn that source into cited learning tools or one audiobook file.
 
-[![CI](https://github.com/nguyenduyhung1989/360GNH/actions/workflows/ci.yml/badge.svg)](https://github.com/nguyenduyhung1989/360GNH/actions/workflows/ci.yml)
+[![CI](https://github.com/bke-edu/360GNH/actions/workflows/ci.yml/badge.svg)](https://github.com/bke-edu/360GNH/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-f7c928.svg)](LICENSE)
 
 360GNH is a provider-neutral TypeScript engine and local-first web demo extracted from the strongest reusable ideas in a privately maintained knowledge platform. The complete interface is available in English and Vietnamese, remembers the reader's choice, and follows the browser language on first use. It works without an API key by default, then offers a server-backed setup screen for OpenAI and Supadata.
