@@ -40,7 +40,7 @@
   },
   "packageManager": "npm@10.9.7",
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^9.2.5",
     "prettier": "^3.6.2",
     "typescript": "5.9.3"
   }
