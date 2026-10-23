@@ -4,15 +4,15 @@
 
 ## Prerequisites and configuration
 
-| Name | Purpose | Required where | Evidence |
-|---|---|---|---|
-| `HOST`, `PORT`, `WEB_ORIGIN` | API bind, API port, and exact browser-origin allowlist | Local development or API container | `.env.example`, `apps/api/src/config.ts` |
-| `API_TOKEN` | Machine-client authorization when configured; required for a non-loopback bind | API process; Compose requires it for the internal web proxy | `apps/api/src/config.ts`, `compose.yaml` |
-| `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL` | Optional knowledge model configuration | API process or provider settings UI | `.env.example`, `apps/api/src/config.ts` |
-| `AI_BUDGET_USD`, `OPENAI_INPUT_USD_PER_MTOK`, `OPENAI_OUTPUT_USD_PER_MTOK` | Process-local model cost limit and explicit rates for unlisted models | API process | `.env.example`, `apps/api/src/config.ts`, `packages/core/src/budget.ts` |
-| `SUPADATA_API_KEY` | Optional one-video transcript import | API process or provider settings UI | `.env.example`, `apps/api/src/config.ts` |
-| `OPENAI_TTS_MODEL`, `AUDIOBOOK_MAX_CHARS`, `AUDIOBOOK_SESSION_CHAR_BUDGET` | Optional one-file speech model and process-local character limits | API process | `.env.example`, `apps/api/src/config.ts`, `packages/core/src/audiobook.ts` |
-| `PROVIDER_SETTINGS_PATH` | Optional API-side settings file location; Compose uses an API-only named volume | API process | `.env.example`, `apps/api/src/config.ts`, `compose.yaml` |
+| Name                                                                       | Purpose                                                                         | Required where                                              | Evidence                                                                   |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `HOST`, `PORT`, `WEB_ORIGIN`                                               | API bind, API port, and exact browser-origin allowlist                          | Local development or API container                          | `.env.example`, `apps/api/src/config.ts`                                   |
+| `API_TOKEN`                                                                | Machine-client authorization when configured; required for a non-loopback bind  | API process; Compose requires it for the internal web proxy | `apps/api/src/config.ts`, `compose.yaml`                                   |
+| `AI_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`                            | Optional knowledge model configuration                                          | API process or provider settings UI                         | `.env.example`, `apps/api/src/config.ts`                                   |
+| `AI_BUDGET_USD`, `OPENAI_INPUT_USD_PER_MTOK`, `OPENAI_OUTPUT_USD_PER_MTOK` | Process-local model cost limit and explicit rates for unlisted models           | API process                                                 | `.env.example`, `apps/api/src/config.ts`, `packages/core/src/budget.ts`    |
+| `SUPADATA_API_KEY`                                                         | Optional one-video transcript import                                            | API process or provider settings UI                         | `.env.example`, `apps/api/src/config.ts`                                   |
+| `OPENAI_TTS_MODEL`, `AUDIOBOOK_MAX_CHARS`, `AUDIOBOOK_SESSION_CHAR_BUDGET` | Optional one-file speech model and process-local character limits               | API process                                                 | `.env.example`, `apps/api/src/config.ts`, `packages/core/src/audiobook.ts` |
+| `PROVIDER_SETTINGS_PATH`                                                   | Optional API-side settings file location; Compose uses an API-only named volume | API process                                                 | `.env.example`, `apps/api/src/config.ts`, `compose.yaml`                   |
 
 Only variable names and storage roles are listed here. Keep actual credentials in a local environment or the API settings interface; never commit their values.
 

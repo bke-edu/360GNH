@@ -8,24 +8,24 @@
 
 ## Repository type and stack
 
-| Area | Evidence-based value | Source |
-|---|---|---|
-| Type | `service` with a domain package, HTTP API, and browser app | `package.json`, `apps/api/package.json`, `apps/web/package.json` |
-| Runtime | Node.js `>=20`; browser app built with React | `package.json`, `apps/web/package.json` |
-| Package and build tool | npm workspaces, TypeScript, Vite | `package.json`, `tsconfig.base.json`, `apps/web/vite.config.ts` |
-| API entry point | `apps/api/src/server.ts` | `apps/api/package.json` |
-| Core package entry point | `packages/core/src/index.ts` | `packages/core/package.json` |
-| Web entry point | `apps/web/src/main.tsx` | `apps/web/index.html` |
+| Area                     | Evidence-based value                                       | Source                                                           |
+| ------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| Type                     | `service` with a domain package, HTTP API, and browser app | `package.json`, `apps/api/package.json`, `apps/web/package.json` |
+| Runtime                  | Node.js `>=20`; browser app built with React               | `package.json`, `apps/web/package.json`                          |
+| Package and build tool   | npm workspaces, TypeScript, Vite                           | `package.json`, `tsconfig.base.json`, `apps/web/vite.config.ts`  |
+| API entry point          | `apps/api/src/server.ts`                                   | `apps/api/package.json`                                          |
+| Core package entry point | `packages/core/src/index.ts`                               | `packages/core/package.json`                                     |
+| Web entry point          | `apps/web/src/main.tsx`                                    | `apps/web/index.html`                                            |
 
 ## Repository shape
 
-| Path | Responsibility | Evidence |
-|---|---|---|
-| `packages/core/` | Provider-neutral domain types, ingestion, retrieval, artifacts, and model or repository ports | `packages/core/src/index.ts`, `packages/core/src/studio.ts` |
-| `apps/api/` | Express adapter, validation, provider setup, transcript import, speech, and volatile quiz answer custody | `apps/api/src/server.ts`, `apps/api/src/app.ts` |
-| `apps/web/` | Bilingual React application and HTTP client | `apps/web/src/main.tsx`, `apps/web/src/lib/api.ts` |
-| `docs/` | Owner-authored architecture, API, threat model, roadmap, provenance, legal, and profile documentation | `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/THREAT_MODEL.md` |
-| `packages/core/scripts/eval.ts` | Deterministic capability evaluation using the local model | `package.json`, `packages/core/scripts/eval.ts` |
+| Path                            | Responsibility                                                                                           | Evidence                                                      |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `packages/core/`                | Provider-neutral domain types, ingestion, retrieval, artifacts, and model or repository ports            | `packages/core/src/index.ts`, `packages/core/src/studio.ts`   |
+| `apps/api/`                     | Express adapter, validation, provider setup, transcript import, speech, and volatile quiz answer custody | `apps/api/src/server.ts`, `apps/api/src/app.ts`               |
+| `apps/web/`                     | Bilingual React application and HTTP client                                                              | `apps/web/src/main.tsx`, `apps/web/src/lib/api.ts`            |
+| `docs/`                         | Owner-authored architecture, API, threat model, roadmap, provenance, legal, and profile documentation    | `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/THREAT_MODEL.md` |
+| `packages/core/scripts/eval.ts` | Deterministic capability evaluation using the local model                                                | `package.json`, `packages/core/scripts/eval.ts`               |
 
 ## Main flow
 

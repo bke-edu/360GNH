@@ -4,12 +4,12 @@
 
 ## Boundaries and components
 
-| Component | Responsibility | Calls or owns | Evidence |
-|---|---|---|---|
-| `packages/core` | Source lifecycle, chunking, BM25 retrieval, citations, learning artifacts, and debate orchestration | `KnowledgeRepository`, `KnowledgeModel`, and transcript provider ports | `packages/core/src/studio.ts`, `packages/core/src/model.ts`, `packages/core/src/repository.ts` |
-| `apps/api` | HTTP validation, authentication hook, rate limits, provider settings, YouTube adapter, and speech adapter | Core package and optional external providers | `apps/api/src/app.ts`, `apps/api/src/server.ts`, `apps/api/src/provider-registry.ts` |
-| `apps/web` | Bilingual user interface and browser state | HTTP API | `apps/web/src/App.tsx`, `apps/web/src/lib/api.ts` |
-| `packages/core/scripts/eval.ts` | Deterministic core capability evaluation | Core package with in-memory repository and mock model | `packages/core/scripts/eval.ts` |
+| Component                       | Responsibility                                                                                            | Calls or owns                                                          | Evidence                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `packages/core`                 | Source lifecycle, chunking, BM25 retrieval, citations, learning artifacts, and debate orchestration       | `KnowledgeRepository`, `KnowledgeModel`, and transcript provider ports | `packages/core/src/studio.ts`, `packages/core/src/model.ts`, `packages/core/src/repository.ts` |
+| `apps/api`                      | HTTP validation, authentication hook, rate limits, provider settings, YouTube adapter, and speech adapter | Core package and optional external providers                           | `apps/api/src/app.ts`, `apps/api/src/server.ts`, `apps/api/src/provider-registry.ts`           |
+| `apps/web`                      | Bilingual user interface and browser state                                                                | HTTP API                                                               | `apps/web/src/App.tsx`, `apps/web/src/lib/api.ts`                                              |
+| `packages/core/scripts/eval.ts` | Deterministic core capability evaluation                                                                  | Core package with in-memory repository and mock model                  | `packages/core/scripts/eval.ts`                                                                |
 
 ## Main flow
 
@@ -48,13 +48,13 @@ Evidence: `packages/core/src/studio.ts`, `packages/core/src/security.ts`, `packa
 
 ## Change impact
 
-| Change area | Likely affected components | Evidence to inspect |
-|---|---|---|
-| Source or chunk shape | Core types, ingestion, retrieval, API schemas, and browser types | `packages/core/src/types.ts`, `packages/core/src/studio.ts`, `apps/api/src/app.ts`, `apps/web/src/lib/types.ts` |
-| Model capability | Core model port, provider adapters, API registry, web controls, and eval cases | `packages/core/src/model.ts`, `packages/core/src/providers/`, `apps/api/src/provider-registry.ts`, `packages/core/scripts/eval.ts` |
-| Provider setup | API settings service, registry snapshots, settings routes, and settings UI | `apps/api/src/provider-settings.ts`, `apps/api/src/provider-registry.ts`, `apps/api/src/app.ts`, `apps/web/src/lib/useProviderSettings.ts` |
-| Transcript import | URL canonicalization, core import flow, Supadata adapter, and source UI | `packages/core/src/youtube.ts`, `packages/core/src/studio.ts`, `apps/api/src/supadata-transcript.ts`, `apps/web/src/components/SourceRail.tsx` |
-| Local container delivery | Compose, Dockerfile, Nginx proxy, and startup helper | `compose.yaml`, `Dockerfile`, `apps/web/nginx.conf.template`, `scripts/docker-up.sh` |
+| Change area              | Likely affected components                                                     | Evidence to inspect                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source or chunk shape    | Core types, ingestion, retrieval, API schemas, and browser types               | `packages/core/src/types.ts`, `packages/core/src/studio.ts`, `apps/api/src/app.ts`, `apps/web/src/lib/types.ts`                                |
+| Model capability         | Core model port, provider adapters, API registry, web controls, and eval cases | `packages/core/src/model.ts`, `packages/core/src/providers/`, `apps/api/src/provider-registry.ts`, `packages/core/scripts/eval.ts`             |
+| Provider setup           | API settings service, registry snapshots, settings routes, and settings UI     | `apps/api/src/provider-settings.ts`, `apps/api/src/provider-registry.ts`, `apps/api/src/app.ts`, `apps/web/src/lib/useProviderSettings.ts`     |
+| Transcript import        | URL canonicalization, core import flow, Supadata adapter, and source UI        | `packages/core/src/youtube.ts`, `packages/core/src/studio.ts`, `apps/api/src/supadata-transcript.ts`, `apps/web/src/components/SourceRail.tsx` |
+| Local container delivery | Compose, Dockerfile, Nginx proxy, and startup helper                           | `compose.yaml`, `Dockerfile`, `apps/web/nginx.conf.template`, `scripts/docker-up.sh`                                                           |
 
 The detailed provider setup and one-video import flows are documented in [focused specifications](specs/provider-settings.md) and [the YouTube import specification](specs/youtube-transcript-import.md).
 
